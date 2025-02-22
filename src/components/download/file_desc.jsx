@@ -31,7 +31,7 @@ export default function FileDesc() {
    if (!formats) {
       return (
          <div className="flex items-center justify-center min-h-screen">
-            <p className="text-2xl font-bold animate-pulse">Loading...</p>
+            <p className="text-[3vw] font-light animate-pulse ml-[4vw]">Fetching...</p>
          </div>
       );
    }
