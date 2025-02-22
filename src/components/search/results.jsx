@@ -34,13 +34,11 @@ export default function SearchResults({ open, setOpen }) {
                </Link>
             ))}
          </div>
-         <div className={`flex-1 flex max-h-[20vw] max-md:hidden bg-orange-500 ${open ? "hidden" : ""}`}>
+         <div className={`flex-1 flex max-h-[20vw] max-md:hidden ${open ? "hidden" : ""} p-[1vw]`}>
             <img
                src={searchResults[curr].thumbnail}
                alt="Thumbnail"
-               width="400"
-               height="225"
-               className={`m-[1vw] object-cover object-top flex-1 bg-green-50 shadow-[0_0px_2px_rgba(0,_0,_0,_0.7)]`}
+               className={`object-cover object-top flex-1 bg-green-50 shadow-[0_0px_2px_rgba(0,_0,_0,_0.7)]`}
             />
          </div>
       </div>
