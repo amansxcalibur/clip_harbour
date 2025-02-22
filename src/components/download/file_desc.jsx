@@ -81,7 +81,18 @@ export default function FileDesc() {
                <Options setCurr={setCurr} curr={curr} formats={formats} />
             </div>
             <div className="flex-1 flex flex-col">
-               <div className="bg-orange-500 min-h-[30vw] flex border-black border border-solid"></div>
+               <div className="bg-orange-500 min-h-[30vw] flex border-black border border-solid">
+
+                  <img
+                     src={selectedVideo.thumbnail}
+                     alt="Thumbnail"
+                     width="400"
+                     height="225"
+                     className={`m-[1vw] object-cover object-top flex-1 bg-green-50 shadow-[0_0px_2px_rgba(0,_0,_0,_0.7)]`}
+                  />
+
+               </div>
+
             </div>
          </div>
       </div>

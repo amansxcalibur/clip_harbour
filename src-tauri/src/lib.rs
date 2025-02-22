@@ -65,7 +65,10 @@ struct Format {
 struct Video {
     title: String,
     url: String,
-    formats: Vec<Format>,
+    uploader: String,
+    thumbnail: String,
+    duration: String,
+    formats: Option<Vec<Format>>,
 }
 
 fn parse_config(config: DownloadConfig) -> Vec<String> {
@@ -169,35 +172,26 @@ fn get_thumbnail_url(app: tauri::AppHandle, url: String) -> String {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-fn get_top_search(app: tauri::AppHandle, query: &str) -> Result<Vec<(String, String)>, String> {
+async fn get_top_search(app: tauri::AppHandle, query: String) {
     let args = vec![
         format!("ytsearch5:{}", query),
-        "--get-title".to_string(),
-        "--get-id".to_string(),
+        "--print".to_string(),
+        r#"{"title":%(title)j, "url":%(id)j, "duration":%(duration_string)j, "uploader":%(uploader)j, "thumbnail":%(thumbnail)j}"#.to_string(),
     ];
     let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args(args);
-    let (mut rx, _child) = sidecar_command.spawn().map_err(|e| e.to_string())?;
+    let (mut rx, mut _child) = sidecar_command.spawn().expect("Failed to spawn sidecar");
+    let mut search_results: Vec<Video> = vec![];
 
-    let mut results = Vec::new();
-    let mut buffer = Vec::new();
-
-    while let Some(event) = rx.blocking_recv() {
+    while let Some(event) = rx.recv().await {
         if let CommandEvent::Stdout(line_bytes) = event {
-            let lines: Vec<String> = String::from_utf8_lossy(&line_bytes)
-                .trim()
-                .lines()
-                .map(|s| s.to_string())
-                .collect();
-
-            buffer.extend(lines);
+            let data = String::from_utf8_lossy(&line_bytes);
+            if let Ok(video_details) = serde_json::from_str::<Video>(&data) {
+                search_results.push(video_details);
+                app.emit("search-update", search_results.clone())
+                    .expect("failed to send search update");
+            }
         }
     }
-    let mut iter = buffer.iter();
-    while let (Some(title), Some(video_id)) = (iter.next(), iter.next()) {
-        results.push((title.clone(), format!("https://www.youtube.com/watch?v={}", video_id)));
-    }
-    results.truncate(5);
-    Ok(results)
 }
 
 #[tauri::command]
@@ -212,7 +206,7 @@ async fn get_formats(app: tauri::AppHandle, mut video_details: Video) -> Video {
 
     let data = String::from_utf8_lossy(&output.stdout);
     let formats: Vec<Format> = serde_json::from_str::<Vec<Format>>(&data).unwrap();
-    video_details.formats = formats;
+    video_details.formats = Some(formats);
     return video_details;
 }
 
