@@ -48,10 +48,24 @@ struct Format {
     id: String,
     #[serde(rename(deserialize = "tbr"))]
     bitrate: Option<f64>,
-
+    #[serde(rename(deserialize = "acodec"))]
+    audio_codec: Option<String>,
+    #[serde(rename(deserialize = "vcodec"))]
+    video_codec: Option<String>,
+    #[serde(rename(deserialize = "asr"))]
+    sample_rate: Option<i64>,
+    fps: Option<f64>,
     filesize: Option<i64>,
     resolution: Option<String>,
+    dynamic_range: Option<String>,
     ext: String,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+struct Video {
+    title: String,
+    url: String,
+    formats: Vec<Format>,
 }
 
 fn parse_config(config: DownloadConfig) -> Vec<String> {
@@ -154,13 +168,12 @@ fn get_thumbnail_url(app: tauri::AppHandle, url: String) -> String {
     thumbnail_url.trim().to_string()
 }
 
-
 #[tauri::command(rename_all = "snake_case")]
 fn get_top_search(app: tauri::AppHandle, query: &str) -> Result<Vec<(String, String)>, String> {
     let args = vec![
-        format!("ytsearch5:{}", query), 
+        format!("ytsearch5:{}", query),
         "--get-title".to_string(),
-        "--get-id".to_string(),        
+        "--get-id".to_string(),
     ];
     let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args(args);
     let (mut rx, _child) = sidecar_command.spawn().map_err(|e| e.to_string())?;
@@ -175,7 +188,7 @@ fn get_top_search(app: tauri::AppHandle, query: &str) -> Result<Vec<(String, Str
                 .lines()
                 .map(|s| s.to_string())
                 .collect();
-            
+
             buffer.extend(lines);
         }
     }
@@ -183,26 +196,24 @@ fn get_top_search(app: tauri::AppHandle, query: &str) -> Result<Vec<(String, Str
     while let (Some(title), Some(video_id)) = (iter.next(), iter.next()) {
         results.push((title.clone(), format!("https://www.youtube.com/watch?v={}", video_id)));
     }
-    results.truncate(5); 
+    results.truncate(5);
     Ok(results)
 }
 
-
-
-
-
 #[tauri::command]
-async fn get_formats(app: tauri::AppHandle, url: String) -> Result<Vec<Format>, String> {
-    let sidecar_command =
-        app.shell()
-            .sidecar("yt-dlp")
-            .unwrap()
-            .args([url, "--print".to_string(), "%(formats)j".to_string()]);
+async fn get_formats(app: tauri::AppHandle, mut video_details: Video) -> Video {
+    let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args([
+        video_details.url.clone(),
+        "--print".to_string(),
+        "%(formats)j".to_string(),
+    ]);
 
     let output: Output = sidecar_command.output().await.unwrap();
 
     let data = String::from_utf8_lossy(&output.stdout);
-    serde_json::from_str::<Vec<Format>>(&data).map_err(|e| format!("failed to deserialize format data: {}", e))
+    let formats: Vec<Format> = serde_json::from_str::<Vec<Format>>(&data).unwrap();
+    video_details.formats = formats;
+    return video_details;
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
