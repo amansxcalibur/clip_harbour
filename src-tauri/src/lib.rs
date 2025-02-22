@@ -46,6 +46,13 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
     });
 }
 
+#[tauri::command(rename_all = "snake_case")]
+fn get_favicon(url: String) -> String {
+    let full_url = format!("http://www.google.com/s2/favicons?domain={}", url);
+    full_url
+}
+
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
