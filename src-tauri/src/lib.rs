@@ -1,12 +1,13 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt::format;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use tauri::async_runtime::Mutex;
 use tauri::Emitter;
 use tauri::Manager;
+use tauri_plugin_dialog;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent, Output};
 use tauri_plugin_shell::ShellExt;
-use tauri_plugin_dialog;
 
 // Used to assign each process a unique ID
 static PROCESS_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -19,6 +20,7 @@ struct AppState {
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default)]
 struct Download {
+    #[serde(skip_deserializing)]
     title: String,
     status: String,
     #[serde(rename(deserialize = "_percent_str"))]
@@ -40,7 +42,7 @@ struct DownloadConfig {
     output_dir: Option<String>,
     format: Option<String>,
     proxy_url: Option<String>,
-    subtitles: Option<bool>,
+    embed_subtitles: Option<bool>,
     embed_metada: Option<bool>,
     embed_thumbnail: Option<bool>,
 }
@@ -68,7 +70,7 @@ struct Format {
 struct Video {
     title: String,
     #[serde(rename(deserialize = "id"))]
-    url: Option<String>,
+    url: String,
     uploader: String,
     thumbnail: String,
     #[serde(rename(deserialize = "duration_string"))]
@@ -89,7 +91,7 @@ fn parse_config(config: DownloadConfig) -> Vec<String> {
         config.output_dir.map(|x| vec!["-P".to_string(), x]),
         config.format.map(|x| vec!["-f".to_string(), x]),
         config.proxy_url.map(|x| vec!["--proxy".to_string(), x]),
-        config.subtitles.map(|_| vec!["--embed-subs".to_string()]),
+        config.embed_subtitles.map(|_| vec!["--embed-subs".to_string()]),
         config.embed_metada.map(|_| vec!["--embed-metadata".to_string()]),
         config.embed_thumbnail.map(|_| vec!["--embed-thumbnail".to_string()]),
     ];
@@ -149,6 +151,8 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
 
                     app_clone.emit("status", snapshot).expect("failed to emit update event");
                 }
+            } else {
+                eprint!("failed to parse progress update from yt-dlp")
             }
         }
     });
@@ -186,7 +190,8 @@ async fn get_top_search(app: tauri::AppHandle, query: String) {
         if let CommandEvent::Stdout(line_bytes) = event {
             let data = String::from_utf8_lossy(&line_bytes);
 
-            if let Ok(video_details) = serde_json::from_str::<Video>(&data) {
+            if let Ok(mut video_details) = serde_json::from_str::<Video>(&data) {
+                video_details.url = format!("https://www.youtube.com/watch?v={}", video_details.url);
                 search_results.push(video_details);
                 app.emit("search-update", search_results.clone())
                     .expect("failed to send search update");
@@ -202,7 +207,9 @@ async fn get_url_details(app: tauri::AppHandle, url: String) -> Video {
 
     let output: Output = sidecar_command.output().await.unwrap();
     let data = String::from_utf8_lossy(&output.stdout);
-    serde_json::from_str::<Video>(&data).expect("Failed to deserialize data from URL fetch")
+    let mut video: Video = serde_json::from_str::<Video>(&data).expect("Failed to deserialize data from URL fetch");
+    video.url = format!("https://www.youtube.com/watch?v={}", video.url);
+    video
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

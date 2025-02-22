@@ -3,8 +3,7 @@ import { useState, useEffect } from "react";
 import Options from "./options";
 import Arrow from "../svg/arrow";
 import Plus from "../svg/plus";
-import Download from "../svg/download";
-import { invoke } from "@tauri-apps/api/core";
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { useVideo } from "../../providers/video_context";
 import DownloadConfig from "./download_config";
 
@@ -56,9 +55,9 @@ export default function FileDesc() {
                </div>
                <div className="flex flex-col items-start">
                   <p className="text-[2vw] ml-[1vw]">{selectedVideo?.title}</p>
-                  <p className="text-[1.5vw] ml-[1vw] underline">{selectedVideo?.url}</p>
+                  <div onClick={() => { openUrl(selectedVideo?.url) }} className="text-[1.5vw] ml-[1vw] underline cursor-pointer transition-all duration-100 hover:text-blue-500 hover:underline">{selectedVideo?.url}</div>
                </div>
-               <DownloadConfig ext={formats[curr].ext} />
+               <DownloadConfig selectedVideo={selectedVideo} curr={curr} />
             </div>
          </div>
       </div>

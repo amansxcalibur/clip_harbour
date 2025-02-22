@@ -1,3 +1,4 @@
+import FolderPicker from "../download/save_destination";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { listen } from "@tauri-apps/api/event";
@@ -5,16 +6,9 @@ import { listen } from "@tauri-apps/api/event";
 export default function SideBar({ open, setOpen }) {
    const [downloads, setDownloads] = useState({});
 
-   useEffect(() => {
-      const unlistenPromise = listen("status", (event) => {
-         console.log("Received event:", event.payload);
-         setDownloads(event.payload);
-      });
-
-      return () => {
-         unlistenPromise.then((unlisten) => unlisten()).catch(console.error);
-      };
-   }, []);
+   listen("status", (event) => {
+      setDownloads(event.payload);
+   });
 
    return (
       <div className="bg-red-800 relative">
@@ -27,7 +21,8 @@ export default function SideBar({ open, setOpen }) {
                   {Object.entries(downloads).map(([id, download]) => (
                      <li key={id} className="mt-2">
                         <p className="font-semibold">{download.title || "Download"}</p>
-                        <p className="text-sm">📥 {download.status}</p>
+                        <p className="text-sm">📥 status:{download.status}</p>
+                        <p className="text-sm">{download.percentage}</p>
                      </li>
                   ))}
                   <li className={`${open ? "" : "hidden"}`}>
