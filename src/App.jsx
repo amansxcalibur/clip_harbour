@@ -22,7 +22,7 @@ function App() {
                               <SearchBar />
                            </div>
 
-                           <div className="h-[1px] bg-black w-full my-[1vw]"></div>
+                           <div className="h-[1px] bg-black w-full"></div>
                            <div className="flex-1 flex">
                               <SearchResults open={open} setOpen={setOpen} />
                            </div>
