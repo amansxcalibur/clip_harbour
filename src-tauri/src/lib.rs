@@ -67,7 +67,7 @@ fn parse_config(config: DownloadConfig) -> Vec<String> {
         config.output_dir.map(|x| vec!["-P".to_string(), x]),
         config.format.map(|x| vec!["-f".to_string(), x]),
         config.proxy_url.map(|x| vec!["--proxy".to_string(), x]),
-        config.subtitles.map(|_| vec!["--write-subs".to_string()]),
+        config.subtitles.map(|_| vec!["--embed-subs".to_string()]),
         config.embed_metada.map(|_| vec!["--embed-metadata".to_string()]),
         config.embed_thumbnail.map(|_| vec!["--embed-thumbnail".to_string()]),
     ];
