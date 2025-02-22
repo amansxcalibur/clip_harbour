@@ -19,7 +19,7 @@ export default function Options({curr, setCurr, collapse, formats}) {
   }
   return (
     <div className="flex flex-1">
-      <div className={`flex flex-[2] flex-col w-full ${collapse?"max-":"max-h-[42vh]"} overflow-auto`}>
+      <div className={`flex flex-[2] flex-col w-full ${collapse?"max-":"max-h-[50vh]"} overflow-auto`}>
         {formats.map((key, index) => (
           <p
             onClick={() => { setCurr(index) }}

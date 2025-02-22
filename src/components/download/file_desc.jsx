@@ -18,6 +18,7 @@ export default function FileDesc() {
       const fetchFormats = async () => {
          try {
             const result = await invoke("get_formats", { videoDetails: selectedVideo });
+            console.log("fetching from invokle ", selectedVideo)
             setFormats(result.formats);
          } catch (error) {
             console.error("Failed to fetch formats:", error);
@@ -41,10 +42,10 @@ export default function FileDesc() {
             <Link to='/' className="rotate-90 size-16 border border-solid rounded-full border-black"><Arrow/></Link>
          </div>
          <div className="flex">
-               <div className="flex-[1.5] max-h-[87vh] overflow-scroll">
+               <div className="flex-[1.5] max-h-[92vh] overflow-scroll">
                   <div onClick={()=>{setCollapse(!collapse)}} className={`${collapse?"":"min-h-[30vh]"} flex flex-col`}>
-                     <button className={`${collapse?"text-black":"bg-black text-[#ffffff]"} min-h-[7vh] border border-black border-solid flex items-center text-[2vw] pl-[2vw] sticky top-0`}>
-                        {collapse?<></>:<span className="size-10"><Plus/></span>}
+                     <button className={`${collapse?"text-black":"bg-black text-[#ffffff]"} min-h-[7vh] border border-black hover:bg-black hover:text-[#ffffff] transition duration-300 border-solid flex items-center text-[2vw] pl-[2vw] sticky top-0`}>
+                        <span className="size-10"><Plus/></span>
                         Key Data
                      </button>
                      <div className={`grid grid-cols-2 px-[2vw] py-[1vw] gap-[0.3vw] ${collapse?"hidden":""}`}>
@@ -57,35 +58,39 @@ export default function FileDesc() {
                      </div>
                      
                   </div>
-                  <button onClick={()=>{setCollapse(!collapse)}} className={`w-full sticky top-0 hover:bg-black hover:text-[#ffffff] ${collapse?"bg-black text-[#ffffff] border-[#ffffff] border-b":"border-black border-y"} min-h-[7vh] border-solid flex items-center pl-[2vw] text-[2vw]`}>
-                     {collapse?<span className="size-10"><Plus/></span>:<></>}Available
+                  <button onClick={()=>{setCollapse(!collapse)}} className={`w-full transition duration-300 sticky top-0 hover:bg-black hover:text-[#ffffff] ${collapse?"bg-black text-[#ffffff] border-[#ffffff] border-b":"border-black border-y"} min-h-[7vh] border-solid flex items-center pl-[2vw] text-[2vw]`}>
+                     <span className="size-10"><Plus/></span>
+                     Available Formats
                   </button>
                   <Options setCurr={setCurr} curr={curr} collapse={collapse} formats={formats}/>
                </div>
                <div className="flex-1 flex flex-col">
                   <div className="bg-orange-500 min-h-[30vw] flex border-black border border-solid"></div>
-                  <div className="min-h-[10vh] flex flex-col items-start">
-                     <p className="text-[2vw] ml-[1vw]">{data.title}</p>
+                  <div className="flex flex-col items-start">
+                     <p className="text-[2vw] ml-[1vw]">{selectedVideo.title}</p>
+                     <p href={selectedVideo.url} className="text-[1.5vw] ml-[1vw] underline">{selectedVideo.url}</p>
                   </div>
-                  <div className="flex justify-center items-center">
-                           <div className="flex flex-col">
-                              <p className="text-[0.7vw]">Final format</p>
-                              <p>MP4</p>
-                           </div>
-                           <p className="mx-3">to</p>
-                           <div className="flex flex-col">
-                              <label for="cars" className="text-[0.7vw]">Choose a car:</label>
-                              <select name="cars" id="cars">
-                              <option value="volvo">Volvo</option>
-                              <option value="saab">Saab</option>
-                              <option value="mercedes">Mercedes</option>
-                              <option value="audi">Audi</option>
-                              </select> 
-                           </div>
+
+                  <div className="flex justify-center items-center p-[1vw]">
+                     <div className="flex flex-col">
+                        <p className="text-[1vw]">Final format</p>
+                        <p className="text-[2vw]">{formats[curr].ext}</p>
                      </div>
-                  <div className={`flex justify-center text-[1.3vw] mb-[1vw] ${collapse?"hidden":""}`}>
+                     <p className="mx-5">to</p>
+                     <div className="flex flex-col">
+                        <label for="cars" className="text-[1vw]">Choose a car:</label>
+                        <select name="cars" className="text-[2vw]" id="cars">
+                        <option value="volvo">Volvo</option>
+                        <option value="saab">Saab</option>
+                        <option value="mercedes">Mercedes</option>
+                        <option value="audi">Audi</option>
+                        </select> 
+                     </div>
+                  </div>
+
+                  <div className="flex justify-center text-[1.3vw] mb-[1vw]">
                      <button className="bg-black text-white hover:bg-[#ffffff] hover:text-black rounded-[2vw] px-5 py-2 flex items-center">
-                        <p className="pr-2">Download {data.formats[curr].ext}</p>
+                        <p className="pr-2">Download {formats[curr].ext}</p>
                         <p className="size-7"><Download/></p></button>
                   </div>
                </div>
