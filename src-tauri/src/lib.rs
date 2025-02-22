@@ -152,6 +152,9 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
                 if let Ok(json_value) = serde_json::from_str::<Download>(&data) {
                     let snapshot = {
                         let mut download_registry = state.download_registry.lock().await;
+                        if download_registry.get_mut(&process_id).unwrap().status == "cancelled" {
+                            break;
+                        };
                         download_registry.insert(process_id, json_value);
                         download_registry.clone()
                     };
@@ -166,10 +169,16 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
 #[tauri::command]
 async fn stop_download(app: tauri::AppHandle, id: usize) {
     let state = app.state::<AppState>();
-    let mut registry = state.process_registry.lock().await;
-    if let Some(handle) = registry.remove(&id) {
+    let mut process_registry = state.process_registry.lock().await;
+
+    if let Some(handle) = process_registry.remove(&id) {
         handle.kill().expect("failed to kill process");
     }
+
+    let mut download_registry = state.download_registry.lock().await;
+    download_registry.get_mut(&id).expect("failed to fetch download").status = "cancelled".to_string();
+    app.emit("status", download_registry.clone())
+        .expect("failed to emit kill event");
 }
 
 #[tauri::command(rename_all = "snake_case")]
