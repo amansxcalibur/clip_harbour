@@ -9,7 +9,7 @@ import { useState } from "react";
 export default function FileDesc(){
    const [curr, setCurr] = useState(0);
    return(
-      <div className="min-h-full flex-col">
+      <div className="flex-1 min-h-full flex-col">
          <div className="min-h-[10vh] flex flex-col items-start">
                <Link to='/' className="rotate-90 size-16 border border-solid rounded-full border-black"><Arrow/></Link>
                <p className="text-[2vw]">{data.title}</p>
