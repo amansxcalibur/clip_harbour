@@ -16,9 +16,19 @@ struct AppState {
     download_registry: Mutex<HashMap<usize, Download>>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 struct Download {
     status: String,
+    #[serde(rename(deserialize = "_percent_str"))]
+    percentage: Option<String>,
+    #[serde(rename(deserialize = "_speed_str"))]
+    speed: Option<String>,
+    #[serde(rename(deserialize = "_eta_str"))]
+    eta: Option<String>,
+    #[serde(rename(deserialize = "_downloaded_bytes_str"))]
+    bytes_downloaded: Option<String>,
+    #[serde(rename(deserialize = "_total_bytes_estimate_str"))]
+    file_size: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -33,7 +43,13 @@ struct DownloadConfig {
 }
 
 fn parse_config(config: DownloadConfig) -> Vec<String> {
-    let mut args = vec![config.url];
+    let mut args = vec![
+        config.url,
+        "--progress-template".to_string(),
+        "%(progress)j".to_string(),
+        "--quiet".to_string(),
+        "--progress".to_string(),
+    ];
 
     let optional_args = [
         config.output_dir.map(|x| vec!["-P".to_string(), x]),
@@ -68,6 +84,7 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
                 process_id,
                 Download {
                     status: "starting..".to_string(),
+                    ..Default::default()
                 },
             );
             download_registry.clone()
@@ -80,14 +97,16 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
         // read events such as stdout
         while let Some(event) = rx.recv().await {
             if let CommandEvent::Stdout(line_bytes) = event {
-                let line = String::from_utf8_lossy(&line_bytes);
-                let snapshot = {
-                    let mut download_registry = state.download_registry.lock().await;
-                    download_registry.get_mut(&process_id).unwrap().status = line.to_string();
-                    download_registry.clone()
-                };
+                let data = String::from_utf8_lossy(&line_bytes);
+                if let Ok(json_value) = serde_json::from_str::<Download>(&data) {
+                    let snapshot = {
+                        let mut download_registry = state.download_registry.lock().await;
+                        download_registry.insert(process_id, json_value);
+                        download_registry.clone()
+                    };
 
-                app_clone.emit("status", snapshot).expect("failed to emit update event");
+                    app_clone.emit("status", snapshot).expect("failed to emit update event");
+                }
             }
         }
     });
