@@ -1,6 +1,7 @@
+use nix::sys::signal::{kill, Signal};
+use nix::unistd::Pid;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fmt::format;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use tauri::async_runtime::Mutex;
 use tauri::Emitter;
@@ -8,6 +9,7 @@ use tauri::Manager;
 use tauri_plugin_dialog;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent, Output};
 use tauri_plugin_shell::ShellExt;
+use tokio::time::{sleep, Duration};
 
 // Used to assign each process a unique ID
 static PROCESS_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -142,10 +144,14 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
                 if let Ok(json_value) = serde_json::from_str::<Download>(&data) {
                     let snapshot = {
                         let mut download_registry = state.download_registry.lock().await;
-                        if download_registry.get_mut(&process_id).unwrap().status == "cancelled" {
+                        if let Some(entry) = download_registry.get_mut(&process_id) {
+                            if entry.status == "cancelled" {
+                                break;
+                            }
+                            download_registry.insert(process_id, json_value);
+                        } else {
                             break;
-                        };
-                        download_registry.insert(process_id, json_value);
+                        }
                         download_registry.clone()
                     };
 
@@ -171,6 +177,37 @@ async fn stop_download(app: tauri::AppHandle, id: usize) {
     download_registry.get_mut(&id).expect("failed to fetch download").status = "cancelled".to_string();
     app.emit("status", download_registry.clone())
         .expect("failed to emit kill event");
+    sleep(Duration::from_secs(5)).await;
+    download_registry.remove(&id);
+    app.emit("status", download_registry.clone())
+        .expect("failed to emit cleanup event");
+}
+
+#[tauri::command]
+async fn pause_download(app: tauri::AppHandle, id: usize) {
+    let state = app.state::<AppState>();
+    let process_registry = state.process_registry.lock().await;
+
+    let handle = process_registry.get(&id).expect("failed to fetch process");
+    let pid_raw: i32 = handle.pid().try_into().unwrap();
+    let pid = Pid::from_raw(pid_raw);
+    kill(pid, Signal::SIGTSTP).expect("Failed to send pause signal");
+
+    let mut download_registry = state.download_registry.lock().await;
+    download_registry.get_mut(&id).expect("failed to fetch download").status = "paused".to_string();
+    app.emit("status", download_registry.clone())
+        .expect("failed to emit pause event");
+}
+
+#[tauri::command]
+async fn resume_download(app: tauri::AppHandle, id: usize) {
+    let state = app.state::<AppState>();
+    let process_registry = state.process_registry.lock().await;
+
+    let handle = process_registry.get(&id).expect("failed to fetch process");
+    let pid_raw: i32 = handle.pid().try_into().unwrap();
+    let pid = Pid::from_raw(pid_raw);
+    kill(pid, Signal::SIGCONT).expect("Failed to send resume signal");
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -228,9 +265,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             start_download,
             stop_download,
+            pause_download,
             get_favicon,
             get_top_search,
-            get_url_details
+            get_url_details,
+            resume_download,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
