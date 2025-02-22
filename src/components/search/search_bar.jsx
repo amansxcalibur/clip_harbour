@@ -1,26 +1,22 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useVideo } from "../../providers/video_context";
 
 export default function SearchBar() {
     const [searchValue, setSearchValue] = useState("");
+    const navigate = useNavigate();
+    const { setSelectedVideo } = useVideo();
 
     async function Search() {
-        invoke("get_top_search", { query: searchValue });
+        if (searchValue.includes("http")) {
+            setSelectedVideo(null)
+            invoke("get_url_details", { url: searchValue }).then((videoDetails) => setSelectedVideo(videoDetails));
+            navigate("/val");
+            return;
+        }
+        await invoke("get_top_search", { query: searchValue });
     }
-
-    //     const filteredTeams = [1,2,3,4,5].filter((row) => {
-    //       const matchesSearch =
-    //           !searchedVal.length ||
-    //           row.teamName?.toLowerCase().includes(searchedVal.toLowerCase()) ||
-    //           row.teamId?.toString().toLowerCase().includes(searchedVal.toLowerCase()) ||
-    //           row.institution?.toLowerCase().includes(searchedVal.toLowerCase()) ||
-    //           row.site?.toLowerCase().includes(searchedVal.toLowerCase());
-
-    //       const matchesToggle = !showWomenOnly || row.isWomenOnly;
-    //       const matchesSite = !selectedSite || row.site === selectedSite;
-
-    //       return matchesSearch && matchesToggle && matchesSite;
-    //   });
 
     return (
         <div className="">

@@ -64,9 +64,11 @@ struct Format {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 struct Video {
     title: String,
-    url: String,
+    #[serde(rename(deserialize = "id"))]
+    url: Option<String>,
     uploader: String,
     thumbnail: String,
+    #[serde(rename(deserialize = "duration_string"))]
     duration: String,
     formats: Option<Vec<Format>>,
 }
@@ -157,27 +159,8 @@ fn get_favicon(url: String) -> String {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-fn get_thumbnail_url(app: tauri::AppHandle, url: String) -> String {
-    let args = vec!["--get-thumbnail".to_string(), url];
-    let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args(args);
-    let (mut rx, mut _child) = sidecar_command.spawn().expect("Failed to spawn sidecar");
-    let mut thumbnail_url = String::new();
-    while let Some(event) = rx.blocking_recv() {
-        if let CommandEvent::Stdout(line_bytes) = event {
-            thumbnail_url = String::from_utf8_lossy(&line_bytes).to_string();
-            break;
-        }
-    }
-    thumbnail_url.trim().to_string()
-}
-
-#[tauri::command(rename_all = "snake_case")]
 async fn get_top_search(app: tauri::AppHandle, query: String) {
-    let args = vec![
-        format!("ytsearch5:{}", query),
-        "--print".to_string(),
-        r#"{"title":%(title)j, "url":%(id)j, "duration":%(duration_string)j, "uploader":%(uploader)j, "thumbnail":%(thumbnail)j}"#.to_string(),
-    ];
+    let args = vec![format!("ytsearch5:{}", query), "--dump-json".to_string()];
     let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args(args);
     let (mut rx, mut _child) = sidecar_command.spawn().expect("Failed to spawn sidecar");
     let mut search_results: Vec<Video> = vec![];
@@ -185,6 +168,7 @@ async fn get_top_search(app: tauri::AppHandle, query: String) {
     while let Some(event) = rx.recv().await {
         if let CommandEvent::Stdout(line_bytes) = event {
             let data = String::from_utf8_lossy(&line_bytes);
+
             if let Ok(video_details) = serde_json::from_str::<Video>(&data) {
                 search_results.push(video_details);
                 app.emit("search-update", search_results.clone())
@@ -194,20 +178,14 @@ async fn get_top_search(app: tauri::AppHandle, query: String) {
     }
 }
 
-#[tauri::command]
-async fn get_formats(app: tauri::AppHandle, mut video_details: Video) -> Video {
-    let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args([
-        video_details.url.clone(),
-        "--print".to_string(),
-        "%(formats)j".to_string(),
-    ]);
+#[tauri::command(rename_all = "snake_case")]
+async fn get_url_details(app: tauri::AppHandle, url: String) -> Video {
+    let args = vec![url, "--dump-json".to_string()];
+    let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args(args);
 
     let output: Output = sidecar_command.output().await.unwrap();
-
     let data = String::from_utf8_lossy(&output.stdout);
-    let formats: Vec<Format> = serde_json::from_str::<Vec<Format>>(&data).unwrap();
-    video_details.formats = Some(formats);
-    return video_details;
+    serde_json::from_str::<Video>(&data).expect("Failed to deserialize data from URL fetch")
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -225,10 +203,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             start_download,
             stop_download,
-            get_thumbnail_url,
             get_favicon,
-            get_formats,
-            get_top_search
+            get_top_search,
+            get_url_details
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
