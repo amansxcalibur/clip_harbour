@@ -1,0 +1,34 @@
+import { useContext } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { DownloadPathContext } from "../../providers/download_path_context";
+
+export default function FolderPicker() {
+  const {downloadPath, setDownloadPath} = useContext(DownloadPathContext) 
+
+  async function handleSelectFolder() {
+    try {
+      const folder = await open({
+        directory: true,
+        multiple: false,
+        title: "Select a download destination"
+      });
+      if (folder) {
+        setDownloadPath(folder);
+        console.log("Selected folder:", folder);
+      } else {
+        console.log("No folder selected");
+      }
+    } catch (error) {
+      console.error("Error selecting folder:", error);
+    }
+  }
+
+  return (
+    <div>
+      <p>Download Path: {downloadPath || "No folder selected"}</p>
+      <button onClick={handleSelectFolder} className="p-2 bg-blue-500 text-white rounded">
+        Choose Folder
+      </button>
+    </div>
+  );
+}

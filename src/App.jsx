@@ -6,11 +6,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import SideBar from "./components/menu/sidebar";
 import { useState } from "react";
 import { VideoProvider } from "./providers/video_context";
+import { DownloadPathProvider } from "./providers/download_path_context";
 
 function App() {
    const [open, setOpen] = useState(false);
    return (
       <VideoProvider>
+         <DownloadPathProvider>
          <main className="bg-[#f4f4f4] min-h-screen flex flex-col font-montreal">
             <BrowserRouter>
                <Routes>
@@ -38,6 +40,7 @@ function App() {
                </Routes>
             </BrowserRouter>
          </main>
+         </DownloadPathProvider>
       </VideoProvider>
    );
 }

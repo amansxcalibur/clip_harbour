@@ -1,7 +1,3 @@
-import { Link } from "react-router-dom";
-import { useState } from "react";
-import data from "../../data/available_options.json"
-
 export default function Options({curr, setCurr, collapse, formats}) {
   //  const handleHover = (index) => {
   //     setCurr(data[index])
@@ -19,7 +15,7 @@ export default function Options({curr, setCurr, collapse, formats}) {
   }
   return (
     <div className="flex flex-1">
-      <div className={`flex flex-[2] flex-col w-full ${collapse?"max-":"max-h-[50vh]"} overflow-auto`}>
+      <div className={`flex flex-[2] flex-col w-full ${collapse?"max-":"max-h-[55vh]"} overflow-auto`}>
         {formats.map((key, index) => (
           <p
             onClick={() => { setCurr(index) }}

@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
+import FolderPicker from "../download/save_destination";
 
 export default function SideBar({open, setOpen}) {
    return (
@@ -22,6 +22,12 @@ export default function SideBar({open, setOpen}) {
                         </Link>
                      </li>
                   ))}
+                  <li className={`${open?"":"hidden"}`}>
+                     <FolderPicker/>
+                  </li>
+                  <li>
+                     <a href="/">Go /</a>
+                  </li>
                </ul>
                <ul className="absolute bottom-0 mb-4">
                   <li>
