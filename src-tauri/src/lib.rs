@@ -154,6 +154,43 @@ fn get_thumbnail_url(app: tauri::AppHandle, url: String) -> String {
     thumbnail_url.trim().to_string()
 }
 
+
+#[tauri::command(rename_all = "snake_case")]
+fn get_top_search(app: tauri::AppHandle, query: &str) -> Result<Vec<(String, String)>, String> {
+    let args = vec![
+        format!("ytsearch5:{}", query), 
+        "--get-title".to_string(),
+        "--get-id".to_string(),        
+    ];
+    let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args(args);
+    let (mut rx, _child) = sidecar_command.spawn().map_err(|e| e.to_string())?;
+
+    let mut results = Vec::new();
+    let mut buffer = Vec::new();
+
+    while let Some(event) = rx.blocking_recv() {
+        if let CommandEvent::Stdout(line_bytes) = event {
+            let lines: Vec<String> = String::from_utf8_lossy(&line_bytes)
+                .trim()
+                .lines()
+                .map(|s| s.to_string())
+                .collect();
+            
+            buffer.extend(lines);
+        }
+    }
+    let mut iter = buffer.iter();
+    while let (Some(title), Some(video_id)) = (iter.next(), iter.next()) {
+        results.push((title.clone(), format!("https://www.youtube.com/watch?v={}", video_id)));
+    }
+    results.truncate(5); 
+    Ok(results)
+}
+
+
+
+
+
 #[tauri::command]
 async fn get_formats(app: tauri::AppHandle, url: String) -> Result<Vec<Format>, String> {
     let sidecar_command =
@@ -185,7 +222,8 @@ pub fn run() {
             stop_download,
             get_thumbnail_url,
             get_favicon,
-            get_formats
+            get_formats,
+            get_top_search
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

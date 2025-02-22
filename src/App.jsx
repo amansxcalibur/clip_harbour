@@ -12,6 +12,8 @@ function App() {
   async function download() {
     // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
     await invoke("start_download", { config: { url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_dir: "/tmp/" } });
+    let result = await invoke ("get_top_search", { query: "india"})
+    console.log(result)
   }
 
   return (
