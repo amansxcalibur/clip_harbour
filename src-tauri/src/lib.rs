@@ -8,14 +8,22 @@ struct DownloadConfig {
     url: String,
     output_dir: Option<String>,
     format: Option<String>,
+    proxy_url: Option<String>,
+    subtitles: Option<bool>,
+    embed_metada: Option<bool>,
+    embed_thumbnail: Option<bool>,
 }
 
 fn parse_config(config: DownloadConfig) -> Vec<String> {
     let mut args = vec![config.url];
 
     let optional_args = [
-        config.output_dir.map(|o| vec!["-P".to_string(), o]),
-        config.format.map(|f| vec!["-f".to_string(), f]),
+        config.output_dir.map(|x| vec!["-P".to_string(), x]),
+        config.format.map(|x| vec!["-f".to_string(), x]),
+        config.proxy_url.map(|x| vec!["--proxy".to_string(), x]),
+        config.subtitles.map(|_| vec!["--write-subs".to_string()]),
+        config.embed_metada.map(|_| vec!["--embed-metadata".to_string()]),
+        config.embed_thumbnail.map(|_| vec!["--embed-thumbnail".to_string()]),
     ];
     args.extend(optional_args.into_iter().flatten().flatten());
     return args;
@@ -23,11 +31,7 @@ fn parse_config(config: DownloadConfig) -> Vec<String> {
 
 #[tauri::command(rename_all = "snake_case")]
 fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
-    let sidecar_command = app
-        .shell()
-        .sidecar("yt-dlp")
-        .unwrap()
-        .args(parse_config(config));
+    let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args(parse_config(config));
     let (mut rx, mut _child) = sidecar_command.spawn().expect("Failed to spawn sidecar");
 
     tauri::async_runtime::spawn(async move {
