@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use tauri::async_runtime::Mutex;
 use tauri::Emitter;
 use tauri::Manager;
-use tauri_plugin_shell::process::{CommandChild, CommandEvent};
+use tauri_plugin_shell::process::{CommandChild, CommandEvent, Output};
 use tauri_plugin_shell::ShellExt;
 
 // Used to assign each process a unique ID
@@ -40,6 +40,18 @@ struct DownloadConfig {
     subtitles: Option<bool>,
     embed_metada: Option<bool>,
     embed_thumbnail: Option<bool>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+struct Format {
+    #[serde(rename(deserialize = "format_id"))]
+    id: String,
+    #[serde(rename(deserialize = "tbr"))]
+    bitrate: Option<f64>,
+
+    filesize: Option<i64>,
+    resolution: Option<String>,
+    ext: String,
 }
 
 fn parse_config(config: DownloadConfig) -> Vec<String> {
@@ -112,6 +124,15 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
     });
 }
 
+#[tauri::command]
+async fn stop_download(app: tauri::AppHandle, id: usize) {
+    let state = app.state::<AppState>();
+    let mut registry = state.process_registry.lock().await;
+    if let Some(handle) = registry.remove(&id) {
+        handle.kill().expect("failed to kill process");
+    }
+}
+
 #[tauri::command(rename_all = "snake_case")]
 fn get_favicon(url: String) -> String {
     let full_url = format!("http://www.google.com/s2/favicons?domain={}", url);
@@ -134,12 +155,17 @@ fn get_thumbnail_url(app: tauri::AppHandle, url: String) -> String {
 }
 
 #[tauri::command]
-async fn stop_download(app: tauri::AppHandle, id: usize) {
-    let state = app.state::<AppState>();
-    let mut registry = state.process_registry.lock().await;
-    if let Some(handle) = registry.remove(&id) {
-        handle.kill().expect("failed to kill process");
-    }
+async fn get_formats(app: tauri::AppHandle, url: String) -> Result<Vec<Format>, String> {
+    let sidecar_command =
+        app.shell()
+            .sidecar("yt-dlp")
+            .unwrap()
+            .args([url, "--print".to_string(), "%(formats)j".to_string()]);
+
+    let output: Output = sidecar_command.output().await.unwrap();
+
+    let data = String::from_utf8_lossy(&output.stdout);
+    serde_json::from_str::<Vec<Format>>(&data).map_err(|e| format!("failed to deserialize format data: {}", e))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -158,7 +184,8 @@ pub fn run() {
             start_download,
             stop_download,
             get_thumbnail_url,
-            get_favicon
+            get_favicon,
+            get_formats
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
