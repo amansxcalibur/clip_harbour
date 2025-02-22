@@ -42,7 +42,7 @@ export default function FileDesc() {
                <button onClick={() => setCollapse(!collapse)} className={`w-full sticky top-0 hover:bg-black hover:text-[#ffffff] ${collapse ? "bg-black text-[#ffffff] border-[#ffffff] border-b" : "border-black border-y"} min-h-[7vh] border-solid flex items-center pl-[2vw] text-[2vw]`}>
                   {collapse && <span className="size-10"><Plus /></span>} Available formats
                </button>
-               <Options setCurr={setCurr} curr={curr} collapse={collapse} formats={selectedVideo.formats} />
+               <Options setCurr={setCurr} curr={curr} collapse={collapse} selectedVideo={selectedVideo} />
             </div>
             <div className="flex-1 flex flex-col">
                <div className="bg-orange-500 min-h-[30vw] flex border-black border border-solid">

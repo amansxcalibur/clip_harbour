@@ -1,11 +1,15 @@
-export default function Options({ curr, setCurr, collapse, formats }) {
-  //  const handleHover = (index) => {
-  //     setCurr(data[index])
-  //  }
-  //  const handleClear = () => {
-  //     setCurr(null);
-  //  }
+export default function Options({ curr, setCurr, collapse, selectedVideo }) {
   // Show loading indicator if formats are not loaded
+  function durationToSeconds(duration) {
+    const parts = duration.split(":").map(Number).reverse(); // Reverse to handle from seconds up
+
+    let seconds = parts[0] || 0;  // SS (or default 0)
+    let minutes = parts[1] || 0;  // MM (or default 0)
+    let hours = parts[2] || 0;    // HH (or default 0)
+
+    return hours * 3600 + minutes * 60 + seconds;
+  }
+  let formats = selectedVideo.formats;
   if (!formats) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -27,7 +31,8 @@ export default function Options({ curr, setCurr, collapse, formats }) {
           >
             <p className="max-md:hover:ml-[3vw]">{formats[index].ext}</p>
             <p className="flex-1 flex justify-center max-md:hover:ml-[3vw]">{formats[index].video_codec}</p>
-            <p className="max-md:hover:ml-[3vw]">{formats[index].filesize}</p>
+            <p className="max-md:hover:ml-[3vw]">{formats[index].filesize ? (formats[index].filesize / (1024 * 1024)).toFixed(2) + " MB" : formats[index].bitrate ?
+              "~" + ((formats[index].bitrate * durationToSeconds(selectedVideo.duration)) / (8 * 1024)).toFixed(2) + " MB" : "Unknown"} </p>
             {/* <span className="absolute left-0 bottom-0 h-[2px] w-0 bg-[#ffc506] transition-all ease-in-out duration-500 group-hover:w-full"></span> */}
             <span className="absolute left-0 bottom-0 h-0 w-full bg-black transition-all ease-in-out duration-400 z-[-1] group-hover:h-full"></span>
           </p>

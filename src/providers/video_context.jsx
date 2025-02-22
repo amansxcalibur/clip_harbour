@@ -9,7 +9,6 @@ export function VideoProvider({ children }) {
 
   listen('search-update', (event) => {
     setSearchResults(event.payload);
-    console.log(event.payload);
   })
 
   return (
