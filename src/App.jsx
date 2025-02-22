@@ -1,15 +1,17 @@
-import { useState } from "react";
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from '@tauri-apps/api/event';
+
+listen('status', (event) => {
+  console.log(event.payload);
+})
+
 import "./App.css";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
-  async function greet() {
+  async function download() {
     // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+    await invoke("start_download", { config: { url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_dir: "/tmp/" } });
   }
 
   return (
@@ -31,19 +33,13 @@ function App() {
 
       <form
         className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
       >
         <input
           id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
           placeholder="Enter a name..."
         />
-        <button type="submit">Greet</button>
+        <button type="button" onClick={download}>Download</button>
       </form>
-      <p>{greetMsg}</p>
     </main>
   );
 }

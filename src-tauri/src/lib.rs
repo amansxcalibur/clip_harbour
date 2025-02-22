@@ -1,7 +1,25 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use tauri::async_runtime::Mutex;
 use tauri::Emitter;
-use tauri_plugin_shell::process::CommandEvent;
+use tauri::Manager;
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
+
+// Used to assign each process a unique ID
+static PROCESS_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+#[derive(Debug)]
+struct AppState {
+    process_registry: Mutex<HashMap<usize, CommandChild>>,
+    download_registry: Mutex<HashMap<usize, Download>>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+struct Download {
+    status: String,
+}
 
 #[derive(Deserialize, Debug)]
 struct DownloadConfig {
@@ -34,13 +52,42 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
     let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args(parse_config(config));
     let (mut rx, mut _child) = sidecar_command.spawn().expect("Failed to spawn sidecar");
 
+    let app_clone = app.clone();
     tauri::async_runtime::spawn(async move {
+        let state = app.state::<AppState>();
+
+        let process_id = PROCESS_COUNTER.fetch_add(1, Ordering::Relaxed);
+        {
+            let mut handle_registry = state.process_registry.lock().await;
+            handle_registry.insert(process_id, _child);
+        } // Explicitly release lock as the while loop is blocking
+
+        let snapshot = {
+            let mut download_registry = state.download_registry.lock().await;
+            download_registry.insert(
+                process_id,
+                Download {
+                    status: "starting..".to_string(),
+                },
+            );
+            download_registry.clone()
+        };
+
+        app_clone
+            .emit("status", snapshot)
+            .expect("failed to emit starting event");
+
         // read events such as stdout
         while let Some(event) = rx.recv().await {
             if let CommandEvent::Stdout(line_bytes) = event {
                 let line = String::from_utf8_lossy(&line_bytes);
-                app.emit("status", Some(format!("'{}'", line)))
-                    .expect("failed to emit event");
+                let snapshot = {
+                    let mut download_registry = state.download_registry.lock().await;
+                    download_registry.get_mut(&process_id).unwrap().status = line.to_string();
+                    download_registry.clone()
+                };
+
+                app_clone.emit("status", snapshot).expect("failed to emit update event");
             }
         }
     });
@@ -53,8 +100,8 @@ fn get_favicon(url: String) -> String {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-fn get_thumbnail_url(app: tauri::AppHandle,url: String) -> String {
-    let args = vec!["--get-thumbnail".to_string(),url];
+fn get_thumbnail_url(app: tauri::AppHandle, url: String) -> String {
+    let args = vec!["--get-thumbnail".to_string(), url];
     let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args(args);
     let (mut rx, mut _child) = sidecar_command.spawn().expect("Failed to spawn sidecar");
     let mut thumbnail_url = String::new();
@@ -67,12 +114,33 @@ fn get_thumbnail_url(app: tauri::AppHandle,url: String) -> String {
     thumbnail_url.trim().to_string()
 }
 
+#[tauri::command]
+async fn stop_download(app: tauri::AppHandle, id: usize) {
+    let state = app.state::<AppState>();
+    let mut registry = state.process_registry.lock().await;
+    if let Some(handle) = registry.remove(&id) {
+        handle.kill().expect("failed to kill process");
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            app.manage(AppState {
+                process_registry: Mutex::new(HashMap::<usize, CommandChild>::new()),
+                download_registry: Mutex::new(HashMap::<usize, Download>::new()),
+            });
+            Ok(())
+        })
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![start_download])
+        .invoke_handler(tauri::generate_handler![
+            start_download,
+            stop_download,
+            get_thumbnail_url,
+            get_favicon
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
