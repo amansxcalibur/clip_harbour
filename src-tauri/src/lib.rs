@@ -52,6 +52,20 @@ fn get_favicon(url: String) -> String {
     full_url
 }
 
+#[tauri::command(rename_all = "snake_case")]
+fn get_thumbnail_url(app: tauri::AppHandle,url: String) -> String {
+    let args = vec!["--get-thumbnail".to_string(),url];
+    let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args(args);
+    let (mut rx, mut _child) = sidecar_command.spawn().expect("Failed to spawn sidecar");
+    let mut thumbnail_url = String::new();
+    while let Some(event) = rx.blocking_recv() {
+        if let CommandEvent::Stdout(line_bytes) = event {
+            thumbnail_url = String::from_utf8_lossy(&line_bytes).to_string();
+            break;
+        }
+    }
+    thumbnail_url.trim().to_string()
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
