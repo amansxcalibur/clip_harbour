@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import data from "../../data/search_list.json"
 
-export default function SearchResults() {
+export default function SearchResults({ open,setOpen }) {
    const [curr, setCurr] = useState(null);
    const handleHover = (index) => {
       setCurr(data[index]);
@@ -29,7 +29,7 @@ export default function SearchResults() {
             </Link>
          ))}
          </div>
-         <div className="flex-1 flex max-h-[20vw] max-md:hidden bg-orange-500">
+         <div className={`flex-1 flex max-h-[20vw] max-md:hidden bg-orange-500 ${open?"hidden":""}`}>
          {curr - 1}
          {/* <Image src={curr} alt="h" width={1} height={1} className={`${curr == '/' ? 'hidden' : ''} m-[1vw] object-cover object-top flex-1 bg-green-50 shadow-[0_0px_2px_rgba(0,_0,_0,_0.7)]`} unoptimized></Image> */}
          </div>
