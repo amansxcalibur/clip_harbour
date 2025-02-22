@@ -1,0 +1,33 @@
+{
+    "search_results": [
+      {
+        "title": "Cool Music Video",
+        "url": "https://www.youtube.com/watch?v=abcd1234",
+        "duration": "3:45",
+        "uploader": "MusicChannel",
+        "thumbnail": "https://img.youtube.com/vi/abcd1234/hqdefault.jpg"
+      },
+      {
+        "title": "Tech Review 2025",
+        "url": "https://www.youtube.com/watch?v=efgh5678",
+        "duration": "12:30",
+        "uploader": "TechGuru",
+        "thumbnail": "https://img.youtube.com/vi/efgh5678/hqdefault.jpg"
+      },
+      {
+        "title": "How to Cook Pasta",
+        "url": "https://www.youtube.com/watch?v=ijkl9012",
+        "duration": "7:20",
+        "uploader": "FoodLover",
+        "thumbnail": "https://img.youtube.com/vi/ijkl9012/hqdefault.jpg"
+      },
+      {
+        "title": "Top 10 Coding Tips",
+        "url": "https://www.youtube.com/watch?v=mnop3456",
+        "duration": "15:05",
+        "uploader": "CodeMaster",
+        "thumbnail": "https://img.youtube.com/vi/mnop3456/hqdefault.jpg"
+      }
+    ]
+  }
+  

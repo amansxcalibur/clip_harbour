@@ -1,39 +1,24 @@
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from '@tauri-apps/api/event';
-
-listen('status', (event) => {
-  console.log(event.payload);
-})
-
 import "./App.css";
+import SearchBar from "./components/search/search_bar";
+import SearchResults from "./components/search/results";
+import { BrowserRouter } from "react-router-dom";
 
 function App() {
-  async function download() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    await invoke("start_download", { config: { url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_dir: "/tmp/" } });
-    let result = await invoke ("get_top_search", { query: "india"})
-    console.log(result)
-  }
-
-  return (
-    <main className="container font-montreal">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row bg-amber-400">
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-      >
-        <input
-          id="greet-input"
-          placeholder="Enter a name..."
-        />
-        <button type="button" onClick={download}>Download</button>
-      </form>
-    </main>
-  );
+   return (
+   <main className="bg-[#f4f4f4] min-h-screen flex flex-col font-montreal">
+      <BrowserRouter>
+         <div className="">
+               <div className="flex justify-center">
+               <SearchBar/>
+               </div>
+         </div>
+         <div className="h-[1px] bg-black w-full my-[1vw]"></div>
+         <div className="flex-1 flex">
+               <SearchResults/>
+         </div>
+      </BrowserRouter>
+   </main>
+   );
 }
 
 export default App;
