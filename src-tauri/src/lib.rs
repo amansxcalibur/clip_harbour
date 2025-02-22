@@ -18,6 +18,7 @@ struct AppState {
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default)]
 struct Download {
+    title: Option<String>, 
     status: String,
     #[serde(rename(deserialize = "_percent_str"))]
     percentage: Option<String>,
@@ -95,7 +96,25 @@ fn parse_config(config: DownloadConfig) -> Vec<String> {
 }
 
 #[tauri::command(rename_all = "snake_case")]
+fn get_video_title(app: tauri::AppHandle, url: String) -> Option<String> {
+    let args = vec![url, "--print".to_string(), "%(title)s".to_string()];
+    let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args(args);
+    let (mut rx, _child) = sidecar_command.spawn().ok()?;
+
+    while let Some(event) = rx.blocking_recv() {
+        if let CommandEvent::Stdout(line_bytes) = event {
+            let title = String::from_utf8_lossy(&line_bytes).trim().to_string();
+            return Some(title);
+        }
+    }
+    None
+}
+
+
+
+#[tauri::command(rename_all = "snake_case")]
 fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
+    let video_title = get_video_title(app.clone(), config.url.clone());
     let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args(parse_config(config));
     let (mut rx, mut _child) = sidecar_command.spawn().expect("Failed to spawn sidecar");
 
@@ -114,6 +133,7 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
             download_registry.insert(
                 process_id,
                 Download {
+                    title: video_title.clone(),
                     status: "starting..".to_string(),
                     ..Default::default()
                 },
