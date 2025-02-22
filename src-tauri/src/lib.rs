@@ -6,6 +6,7 @@ use tauri::Emitter;
 use tauri::Manager;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent, Output};
 use tauri_plugin_shell::ShellExt;
+use tauri_plugin_dialog;
 
 // Used to assign each process a unique ID
 static PROCESS_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -216,6 +217,7 @@ pub fn run() {
         })
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             start_download,
             stop_download,

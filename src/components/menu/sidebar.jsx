@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { listen } from "@tauri-apps/api/event"; 
+import { listen } from "@tauri-apps/api/event";
 
 export default function SideBar({ open, setOpen }) {
    const [downloads, setDownloads] = useState({});
@@ -20,7 +20,7 @@ export default function SideBar({ open, setOpen }) {
       <div className="bg-red-800 relative">
          <div className={`bg-blue-700 ${open ? 'min-w-[30vw]' : 'min-w-[2vw]'}`}>
             <button className="text-5xl" onClick={() => setOpen(true)}>AA</button>
-            
+
             <div className="p-4 text-white text-lg">
                <h3 className="font-bold">Downloads</h3>
                <ul>
@@ -30,6 +30,12 @@ export default function SideBar({ open, setOpen }) {
                         <p className="text-sm">📥 {download.status}</p>
                      </li>
                   ))}
+                  <li className={`${open ? "" : "hidden"}`}>
+                     <FolderPicker />
+                  </li>
+                  <li>
+                     <a href="/">Go /</a>
+                  </li>
                </ul>
             </div>
 
