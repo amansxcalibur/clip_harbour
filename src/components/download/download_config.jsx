@@ -11,6 +11,7 @@ export default function DownloadConfig({ selectedVideo, curr }) {
    const [formData, setFormData] = useState({
       url: "",
       output_dir: "",
+      output_ext: "webm",
       format: "",
       proxy_url: null,
       subtitles: false,
@@ -33,6 +34,7 @@ export default function DownloadConfig({ selectedVideo, curr }) {
       e.preventDefault();
       let config = formData;
       config.output_dir = downloadPath || "/tmp/";
+      console.log(downloadPath)
       config.format = format.id;
       config.url = selectedVideo.url;
       config.title = selectedVideo.title;

@@ -3,7 +3,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { DownloadPathContext } from "../../providers/download_path_context";
 
 export default function FolderPicker() {
-  const {downloadPath, setDownloadPath} = useContext(DownloadPathContext) 
+  const { downloadPath, setDownloadPath } = useContext(DownloadPathContext)
 
   async function handleSelectFolder() {
     try {
@@ -14,7 +14,7 @@ export default function FolderPicker() {
       });
       if (folder) {
         setDownloadPath(folder);
-        console.log("Selected folder:", folder);
+        console.log("Selected folder:", downloadPath);
       } else {
         console.log("No folder selected");
       }
@@ -26,7 +26,7 @@ export default function FolderPicker() {
   return (
     <div>
       <p>Download Path: {downloadPath || "No folder selected"}</p>
-      <button onClick={handleSelectFolder} className="p-2 bg-black hover:bg-[#dfdfdf] hover:text-black text-white white rounded-full px-[1vw]">
+      <button type="button" onClick={handleSelectFolder} className="p-2 bg-black hover:bg-[#dfdfdf] hover:text-black text-white white rounded-full px-[1vw]">
         Choose Folder
       </button>
     </div>

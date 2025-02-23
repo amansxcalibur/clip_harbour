@@ -25,6 +25,7 @@ struct Download {
     #[serde(skip_deserializing)]
     title: String,
     status: String,
+    filename: Option<String>,
     #[serde(rename(deserialize = "_percent_str"))]
     percentage: Option<String>,
     #[serde(rename(deserialize = "_speed_str"))]
@@ -42,6 +43,7 @@ struct DownloadConfig {
     url: String,
     title: String,
     output_dir: Option<String>,
+    output_ext: Option<String>,
     format: Option<String>,
     proxy_url: Option<String>,
     embed_subtitles: Option<bool>,
@@ -164,15 +166,61 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
                     };
 
                     app_clone.emit("status", snapshot).expect("failed to emit update event");
+                } else {
+                    eprint!("failed to parse progress update from yt-dlp")
                 }
-            } else {
-                eprint!("failed to parse progress update from yt-dlp")
+            }
+        }
+
+        if let Some(output_ext) = config.output_ext {
+            println!("first some clear");
+            let download_registry = state.download_registry.lock().await;
+            if let Some(download) = download_registry.get(&process_id) {
+                println!("second some clear");
+                if let Some(filename) = download.filename.as_ref() {
+                    println!("third some clear");
+                    let input_path = format!("{}", filename);
+                    let output_path = format!(
+                        "{}.{}",
+                        filename.rsplit_once('.').map(|(name, _)| name).unwrap(),
+                        output_ext
+                    );
+                    println!("Calling convert_ext on {} -> {}", input_path, output_path);
+
+                    tauri::async_runtime::spawn(async move {
+                        convert_ext(app_clone, input_path, output_path).await;
+                    });
+                }
             }
         }
     });
 }
 
 #[tauri::command]
+async fn convert_ext(app: tauri::AppHandle, input_path: String, output_ext: String) {
+    print!("Hello rust des");
+    println!("Converting: {} -> {}", input_path, output_ext);
+    let args = vec![
+        "-i".to_string(),
+        input_path.clone(),
+        "-y".to_string(),
+        output_ext.clone(),
+    ];
+    let sidecar_command = app.shell().sidecar("ffmpeg").unwrap().args(args);
+    let (mut rx, mut _child) = sidecar_command.spawn().expect("failed ffmpeg");
+    println!("conversion: {} -> {}", input_path, output_ext);
+
+    while let Some(event) = rx.recv().await {
+        if let CommandEvent::Stderr(line_bytes) = event {
+            let log = String::from_utf8_lossy(&line_bytes);
+            println!("FFmpeg Log: {}", log);
+        }
+    }
+
+    println!("ffmpeg conversion completed: {}", output_ext);
+}
+
+#[tauri::command(rename_all = "snake_case")]
 async fn stop_download(app: tauri::AppHandle, id: usize) {
     let state = app.state::<AppState>();
     let mut process_registry = state.process_registry.lock().await;
@@ -298,6 +346,8 @@ pub fn run() {
             get_top_search,
             get_url_details,
             resume_download,
+            get_top_search,
+            convert_ext
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

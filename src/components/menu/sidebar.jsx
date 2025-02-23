@@ -1,5 +1,5 @@
 import FolderPicker from "../download/save_destination";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
@@ -8,7 +8,6 @@ export default function SideBar({ open, setOpen }) {
    const [downloads, setDownloads] = useState({});
 
    listen("status", (event) => {
-      console.log(event.payload);
       setDownloads(event.payload);
    });
 
