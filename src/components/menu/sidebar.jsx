@@ -20,7 +20,7 @@ export default function SideBar({ open, setOpen }) {
                <p className="text-[2vw]">Queue</p>
                <ul className="mt-3 flex flex-col  flex-1">
                   {Object.entries(downloads).map(([id, download]) => (
-                     <Loader id={id} download={download} />
+                     <Loader id={id} download={download}/>
                   ))}
                   <li className="flex justify-end hover:text-[#a1a1a1]">View all</li>
                   <li className="text-[2vw] py-[1vw] hover:bg-black transition duration-300 hover:text-[#ffffff]">History</li>
