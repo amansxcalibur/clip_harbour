@@ -7,7 +7,7 @@ use tauri::async_runtime::Mutex;
 use tauri::Emitter;
 use tauri::Manager;
 use tauri_plugin_dialog;
-use tauri_plugin_shell::process::{CommandChild, CommandEvent, Output};
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 use tokio::time::{sleep, Duration};
 
@@ -143,18 +143,20 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
             .emit("status", snapshot)
             .expect("failed to emit starting event");
 
-        // read events such as stdout
+        // read stdout
         while let Some(event) = rx.recv().await {
-            if let CommandEvent::Stdout(line_bytes) = event {
-                let data = String::from_utf8_lossy(&line_bytes);
-                if let Ok(json_value) = serde_json::from_str::<Download>(&data) {
+            if let CommandEvent::Stdout(data_bytes) = event {
+                let data = String::from_utf8_lossy(&data_bytes);
+                if let Ok(download) = serde_json::from_str::<Download>(&data) {
                     let snapshot = {
                         let mut download_registry = state.download_registry.lock().await;
+                        // Break out of loop if download has been cancelled or process doesn't
+                        // exist
                         if let Some(entry) = download_registry.get_mut(&process_id) {
                             if entry.status == "cancelled" {
                                 break;
                             }
-                            download_registry.insert(process_id, json_value);
+                            download_registry.insert(process_id, download);
                         } else {
                             break;
                         }
@@ -177,12 +179,15 @@ async fn stop_download(app: tauri::AppHandle, id: usize) {
 
     if let Some(handle) = process_registry.remove(&id) {
         handle.kill().expect("failed to kill process");
+    } else {
+        eprintln!("failed to remove process from registry")
     }
 
     let mut download_registry = state.download_registry.lock().await;
     download_registry.get_mut(&id).expect("failed to fetch download").status = "cancelled".to_string();
     app.emit("status", download_registry.clone())
         .expect("failed to emit kill event");
+
     sleep(Duration::from_secs(5)).await;
     download_registry.remove(&id);
     app.emit("status", download_registry.clone())
@@ -194,9 +199,10 @@ async fn pause_download(app: tauri::AppHandle, id: usize) {
     let state = app.state::<AppState>();
     let process_registry = state.process_registry.lock().await;
 
-    let handle = process_registry.get(&id).expect("failed to fetch process");
-    let pid_raw: i32 = handle.pid().try_into().unwrap();
-    let pid = Pid::from_raw(pid_raw);
+    let handle = process_registry
+        .get(&id)
+        .expect("failed to fetch process from registry");
+    let pid = Pid::from_raw(handle.pid() as i32);
     kill(pid, Signal::SIGTSTP).expect("Failed to send pause signal");
 
     let mut download_registry = state.download_registry.lock().await;
@@ -210,26 +216,22 @@ async fn resume_download(app: tauri::AppHandle, id: usize) {
     let state = app.state::<AppState>();
     let process_registry = state.process_registry.lock().await;
 
-    let handle = process_registry.get(&id).expect("failed to fetch process");
-    let pid_raw: i32 = handle.pid().try_into().unwrap();
-    let pid = Pid::from_raw(pid_raw);
+    let handle = process_registry
+        .get(&id)
+        .expect("failed to fetch process from registry");
+    let pid = Pid::from_raw(handle.pid() as i32);
     kill(pid, Signal::SIGCONT).expect("Failed to send resume signal");
 }
 
-#[tauri::command(rename_all = "snake_case")]
-fn get_favicon(url: String) -> String {
-    let full_url = format!("http://www.google.com/s2/favicons?domain={}", url);
-    full_url
-}
-
-fn parse_video_details(video_details: &mut Video) {
+fn parse_video_details(mut video_details: Video) -> Video {
     video_details.url = format!("https://www.youtube.com/watch?v={}", video_details.url);
+
     if let Some(formats) = video_details.formats.as_mut() {
         formats.reverse();
         for format in formats.iter_mut() {
             const MB: f64 = 1024.0 * 1024.0;
 
-            // Calculate filesize from bitrate and duration
+            // Estimate filesize from bitrate and duration
             format.filesize = Some(if let Some(filesize) = format.filesize_raw {
                 format!("{:.2} MB", filesize as f64 / MB)
             } else if let Some(bitrate) = format.bitrate {
@@ -240,6 +242,8 @@ fn parse_video_details(video_details: &mut Video) {
             });
         }
     }
+
+    return video_details;
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -250,12 +254,11 @@ async fn get_top_search(app: tauri::AppHandle, query: String) {
     let mut search_results: Vec<Video> = vec![];
 
     while let Some(event) = rx.recv().await {
-        if let CommandEvent::Stdout(line_bytes) = event {
-            let data = String::from_utf8_lossy(&line_bytes);
-
-            if let Ok(mut video_details) = serde_json::from_str::<Video>(&data) {
-                parse_video_details(&mut video_details);
-                search_results.push(video_details);
+        if let CommandEvent::Stdout(data_bytes) = event {
+            let data = String::from_utf8_lossy(&data_bytes);
+            if let Ok(video) = serde_json::from_str::<Video>(&data) {
+                let processed_video: Video = parse_video_details(video);
+                search_results.push(processed_video);
                 app.emit("search-update", search_results.clone())
                     .expect("failed to send search update");
             }
@@ -268,11 +271,11 @@ async fn get_url_details(app: tauri::AppHandle, url: String) -> Video {
     let args = vec![url, "--dump-json".to_string()];
     let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args(args);
 
-    let output: Output = sidecar_command.output().await.unwrap();
-    let data = String::from_utf8_lossy(&output.stdout);
-    let mut video: Video = serde_json::from_str::<Video>(&data).expect("Failed to deserialize data from URL fetch");
-    video.url = format!("https://www.youtube.com/watch?v={}", video.url);
-    video
+    let data_bytes = sidecar_command.output().await.unwrap().stdout;
+    let data = String::from_utf8_lossy(&data_bytes);
+    let video: Video = serde_json::from_str::<Video>(&data).expect("Failed to deserialize data from URL fetch");
+
+    return parse_video_details(video);
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -292,7 +295,6 @@ pub fn run() {
             start_download,
             stop_download,
             pause_download,
-            get_favicon,
             get_top_search,
             get_url_details,
             resume_download,
