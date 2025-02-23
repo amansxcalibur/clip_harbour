@@ -49,11 +49,11 @@ export default function DownloadConfig({ selectedVideo, curr }) {
    };
 
    return (
-      <form onSubmit={handleSubmit} className="px-[2vw]">
-         <div className="text-[1.5vw] my-[1vw]">
+      <form onSubmit={handleSubmit} className="px-[1vw]">
+         <div className="text-[1.3vw] my-[1vw]">
             <FolderPicker />
          </div>
-         <div className="text-[1.5vw] grid grid-cols-2 gap-2">
+         <div className="text-[1.3vw] grid grid-cols-2 gap-2">
             <label className="flex items-center gap-2">
                <CheckboxIcon name="subtitles" checked={formData.subtitles} handleChange={handleChange} />
                Download Subtitles

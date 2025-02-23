@@ -2,7 +2,7 @@ import FolderPicker from "../download/save_destination";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
+import Loader from "./loader";
 
 export default function SideBar({ open, setOpen }) {
    const [downloads, setDownloads] = useState({});
@@ -12,45 +12,28 @@ export default function SideBar({ open, setOpen }) {
    });
 
    return (
-      <div className="bg-red-800 relative">
-         <div className={`bg-blue-700 ${open ? 'min-w-[30vw]' : 'min-w-[2vw]'}`}>
+      <div className="bg-red-800 relative flex">
+         <div className={`bg-[#ffffff] text-black ${open ? 'min-w-[30vw]' : 'min-w-[2vw]'} flex flex-col`}>
             <button className="text-5xl" onClick={() => setOpen(true)}>AA</button>
 
-            <div className="p-4 text-white text-lg">
-               <h3 className="font-bold">Downloads</h3>
-               <ul>
+            <div className="p-4 text-lg flex-1 flex flex-col">
+               <p className="text-[2vw]">Queue</p>
+               <ul className="mt-3 flex flex-col  flex-1">
                   {Object.entries(downloads).map(([id, download]) => (
-                     <li key={id} className="mt-2">
-                        <p className="font-semibold">{download.title || "Download"}</p>
-                        <p className="text-sm">📥 status:{download.status}</p>
-                        <p className="text-sm">{download.percentage}</p>
-                        <button onClick={async () => { invoke("pause_download", { id: parseInt(id) }) }}>pause</button>
-                        <br />
-                        <button onClick={async () => { invoke("stop_download", { id: parseInt(id) }) }}>stop</button>
-                        <br />
-                        <button onClick={async () => { invoke("resume_download", { id: parseInt(id) }) }}>resume</button>
-                     </li>
+                     <Loader id={id} download={download}/>
                   ))}
-                  <li className={`${open ? "" : "hidden"}`}>
-                     <FolderPicker />
-                  </li>
-                  <li>
-                     <a href="/">Go /</a>
-                  </li>
+                  <li className="flex justify-end hover:text-[#a1a1a1]">View all</li>
+                  <li className="text-[2vw] py-[1vw] hover:bg-black transition duration-300 hover:text-[#ffffff]">History</li>
                </ul>
+               <div className={`${open ? "" : "hidden"}`}>
+                  <FolderPicker />
+               </div>
+               <div>
+                  <a href="/">Go /</a>
+               </div>
             </div>
 
-            <ul className="mt-3 flex flex-col justify-center text-4xl">
-               {[1, 2, 3, 4].map((key, index) => (
-                  <li key={index} className="mt-1">
-                     <Link to={"/"} onClick={() => setOpen(false)}>
-                        {open ? <>Full Option</> : <>A</>}
-                     </Link>
-                  </li>
-               ))}
-            </ul>
-
-            <ul className="absolute bottom-0 mb-4">
+            <ul className="">
                <li>
                   <button className="text-4xl">
                      {open ? <>Settings or something idk</> : <>S</>}
