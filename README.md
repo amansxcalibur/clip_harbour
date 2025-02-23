@@ -1,20 +1,44 @@
-# Clip Harbour
+<div align="center">
+<h1>Clip Harbour</h1>
+ 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Built with Tauri](https://img.shields.io/badge/Built%20with-Tauri-blue)](https://tauri.app)
 
-Clip Harbour is an intuitive and feature-rich cross-platform GUI for downloading video and audio from various websites. Built with [Tauri](https://github.com/tauri-apps/tauri) and powered by the popular [yt-dlp](https://github.com/yt-dlp/yt-dlp) command-line tool, Clip Harbour provides an easy to use graphical interface for one of the most powerful video downloading tools out there.
+</div>
+
+## Overview
+Clip Harbour is a user friendly and feature-rich cross-platform GUI for downloading videos and audio from various websites like YouTube. Built with [Tauri](https://github.com/tauri-apps/tauri) and powered by [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) and [`ffmpeg`](https://www.ffmpeg.org/) Clip Harbour provides an easy to use graphical interface for one of the most powerful video downloading tools out there.
+
+Go check out our [demo video](https://www.youtube.com/watch?v=VYv4jSYCPak)!
+
+# Table of Contents
+
+- [Motivation](#why-does-this-exist)
+- [Features](#features)
+- [Usage](#usage)
+- [For Developers](#development-setup)
+- [License](#license)
 
 ## Why does this exist?
-While `yt-dlp` is an incredibly powerful command-line tool, it can be difficult for beginners to use due to its complexity and the need to remember various command-line arguments. Clip Harbour was made as a way to bridge this gap.
+While `yt-dlp` is a powerful command-line tool, it can be difficult for beginners to use due to its complexity and command-line nature. This project was created to bridge that gap.  
 
-Additionally, while there are a few existing frontends like [ezytdl](https://github.com/sylviiu/ezytdl) or [youtube-dl-gui](https://github.com/jely2002/youtube-dl-gui), we found that a lot of them were either unmaintained or did not make full use of `yt-dlp`'s capabilities. Here are a list of features that make our app unique:
-- **Compatibility**: Clip Harbour is built using [Tauri](https://github.com/tauri-apps/tauri), a cross-platform framework which enables the app to run seamlessly on Windows, Linux and MacOS.
-- **Size**: One key advantage that Tauri has over similar frameworks like Electron is its efficient use of the system's native web renderer instead of bundling its own. This significantly reduces the final binary size&mdash;ours is just around 10MB! No more worries about being called out for bloatware on r/archlinux ;)
+Although there are a few existing frontends like [ezytdl](https://github.com/sylviiu/ezytdl) or [youtube-dl-gui](https://github.com/jely2002/youtube-dl-gui), many are either outdated, lack active maintenance, or fail to fully utilize `yt-dlp`'s capabilities. Our goal is to address these shortcomings by providing a modern and feature-rich alternative. Here are a few standout features of this project - 
+
+- **Compatibility**: Clip Harbour is built using [Tauri](https://github.com/tauri-apps/tauri), a cross-platform framework that enables the app to run seamlessly on Windows, Linux and MacOS.
+- **Size**: Unlike Electron, Tauri leverages the system's native web renderer, keeping the binary lightweight—ours is just around ~8MB! We have also bundled a [custom minimal](ffmpeg_build.sh) version of `ffmpeg`, reducing its size by 93%. No more bloatware accusations on r/archlinux! ;)
 - **Feature Rich**: We've tried our best to expose as many features of `yt-dlp` as we could. You can find a list of supported features under [Features](#features) (more PR's are welcome!)
 
 ## Features
-  * Integration with `yt-dlp` and full support for parallel downloads as well as multiple download presets.
+  * Integration with `yt-dlp` with support for parallel downloads as well as multiple download options.
+  * Ability to search for videos on youtube in addition to entering specific URLs.
+  * Integration with `ffmpeg` for on-demand conversion between different video/audio formats.
   * Detailed statistics regarding the current download progress including download speed, ETA, file size, bytes downloaded etc.
-  * Optional setting of a proxy URL to bypass geowalled content.
-  * Embedding thumbnails and subtitles directly into the video file.
+  * Ability to embed thumbnails and subtitles directly into the video file.
+
+## Usage
+Just head on over to the [releases](https://github.com/amansxcalibur/clip_harbour/releases) page and download the binary that is specific to your OS!
+
+**Note:** You will need to have python installed to run the versions that are suffixed with `_python`
 
 ## Development Setup
 ### Prerequisites
