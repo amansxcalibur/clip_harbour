@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Options from "./options";
 import Arrow from "../svg/arrow";
 import Plus from "../svg/plus";

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FolderPicker from "./save_destination";
 import { useContext } from "react";
 import { DownloadPathContext } from "../../providers/download_path_context";
@@ -11,7 +11,7 @@ export default function DownloadConfig({ selectedVideo, curr }) {
    const [formData, setFormData] = useState({
       url: "",
       output_dir: "",
-      output_ext: "webm",
+      output_ext: null,
       format: "",
       proxy_url: null,
       subtitles: false,
@@ -19,8 +19,15 @@ export default function DownloadConfig({ selectedVideo, curr }) {
       embed_thumbnail: false,
    });
 
+   useEffect(() => {
+      setFormData((prev) => ({
+         ...prev,
+         output_ext: selectedVideo.formats[curr]?.ext || null,
+      }));
+   }, [curr]);
+
    const format = selectedVideo.formats[curr];
-   const ext = format.ext;
+   let source_ext = format.ext;
 
    const handleChange = (e) => {
       const { name, value, type, checked } = e.target;
@@ -32,13 +39,13 @@ export default function DownloadConfig({ selectedVideo, curr }) {
 
    const handleSubmit = (e) => {
       e.preventDefault();
-      let config = formData;
-      config.output_dir = downloadPath || "/tmp/";
+      formData.output_dir = downloadPath || "/tmp/";
       console.log(downloadPath)
-      config.format = format.id;
-      config.url = selectedVideo.url;
-      config.title = selectedVideo.title;
-      invoke("start_download", { config: config })
+      formData.format = format.id;
+      formData.url = selectedVideo.url;
+      formData.title = selectedVideo.title;
+      formData.output_ext = source_ext == formData.output_ext ? null : formData.output_ext;
+      invoke("start_download", { config: formData })
    };
 
    return (
@@ -67,28 +74,32 @@ export default function DownloadConfig({ selectedVideo, curr }) {
             <div className="flex">
                <div className="flex flex-col">
                   <p className="text-[1vw]">Source format</p>
-                  <p className="text-[2vw]">{ext || "Unknown"}</p>
+                  <p className="text-[2vw]">{source_ext || "Unknown"}</p>
                </div>
                <p className="mx-5">to</p>
                <div className="flex flex-col">
-                  <label htmlFor="format-select" className="text-[1vw]">
-                     Choose Format:
+                  <label htmlFor="output-ext-select" className="text-[1vw]">
+                     Output Format:
                   </label>
                   <select
-                     name="format"
-                     value={formData.format}
+                     name="output_ext"
+                     value={formData.output_ext}
                      onChange={handleChange}
                      className="text-[2vw]"
-                     id="format-select"
+                     id="output-ext-select"
                   >
                      <option value="mp4">MP4</option>
                      <option value="mkv">MKV</option>
+                     <option value="mov">MOV</option>
+                     <option value="webm">WEBM</option>
+                     <option value="mp3">MP3</option>
+                     <option value="m4a">M4A</option>
                   </select>
                </div>
             </div>
             <div className="flex justify-center text-[1.5vw] mb-[1vw]">
                <button type="submit" className="bg-black text-white hover:bg-[#dfdfdf] hover:text-black rounded-[2vw] px-5 py-2 flex items-center transition duration-300">
-                  <p className="pr-2">Download {ext || ""}</p>
+                  <p className="pr-2">Download {formData.output_ext || ""}</p>
                   <p className="size-7"><Download /></p>
                </button>
             </div>

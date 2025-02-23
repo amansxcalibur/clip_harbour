@@ -173,22 +173,18 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
         }
 
         if let Some(output_ext) = config.output_ext {
-            println!("first some clear");
             let download_registry = state.download_registry.lock().await;
             if let Some(download) = download_registry.get(&process_id) {
-                println!("second some clear");
                 if let Some(filename) = download.filename.as_ref() {
-                    println!("third some clear");
                     let input_path = format!("{}", filename);
                     let output_path = format!(
                         "{}.{}",
                         filename.rsplit_once('.').map(|(name, _)| name).unwrap(),
                         output_ext
                     );
-                    println!("Calling convert_ext on {} -> {}", input_path, output_path);
 
                     tauri::async_runtime::spawn(async move {
-                        convert_ext(app_clone, input_path, output_path).await;
+                        convert_video(app_clone, input_path, output_path).await;
                     });
                 }
             }
@@ -197,9 +193,7 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
 }
 
 #[tauri::command]
-async fn convert_ext(app: tauri::AppHandle, input_path: String, output_ext: String) {
-    print!("Hello rust des");
-    println!("Converting: {} -> {}", input_path, output_ext);
+async fn convert_video(app: tauri::AppHandle, input_path: String, output_ext: String) {
     let args = vec![
         "-i".to_string(),
         input_path.clone(),
@@ -208,7 +202,6 @@ async fn convert_ext(app: tauri::AppHandle, input_path: String, output_ext: Stri
     ];
     let sidecar_command = app.shell().sidecar("ffmpeg").unwrap().args(args);
     let (mut rx, mut _child) = sidecar_command.spawn().expect("failed ffmpeg");
-    println!("conversion: {} -> {}", input_path, output_ext);
 
     while let Some(event) = rx.recv().await {
         if let CommandEvent::Stderr(line_bytes) = event {
@@ -347,7 +340,7 @@ pub fn run() {
             get_url_details,
             resume_download,
             get_top_search,
-            convert_ext
+            convert_video
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
