@@ -61,8 +61,12 @@ struct Format {
     video_codec: Option<String>,
     #[serde(rename(deserialize = "asr"))]
     sample_rate: Option<i64>,
+    #[serde(rename(deserialize = "filesize"), skip_serializing)]
+    filesize_raw: Option<i64>,
+    #[serde(skip_deserializing)]
+    filesize: Option<String>,
+
     fps: Option<f64>,
-    filesize: Option<i64>,
     resolution: Option<String>,
     dynamic_range: Option<String>,
     ext: String,
@@ -75,6 +79,8 @@ struct Video {
     url: String,
     uploader: String,
     thumbnail: String,
+    #[serde(rename(deserialize = "duration"), skip_serializing)]
+    duration_raw: i64,
     #[serde(rename(deserialize = "duration_string"))]
     duration: String,
     formats: Option<Vec<Format>>,
@@ -216,6 +222,26 @@ fn get_favicon(url: String) -> String {
     full_url
 }
 
+fn parse_video_details(video_details: &mut Video) {
+    video_details.url = format!("https://www.youtube.com/watch?v={}", video_details.url);
+    if let Some(formats) = video_details.formats.as_mut() {
+        formats.reverse();
+        for format in formats.iter_mut() {
+            const MB: f64 = 1024.0 * 1024.0;
+
+            // Calculate filesize from bitrate and duration
+            format.filesize = Some(if let Some(filesize) = format.filesize_raw {
+                format!("{:.2} MB", filesize as f64 / MB)
+            } else if let Some(bitrate) = format.bitrate {
+                let estimated_size = (bitrate * video_details.duration_raw as f64) / (8.0 * 1024.0);
+                format!("~{:.2} MB", estimated_size)
+            } else {
+                "Unknown".to_string()
+            });
+        }
+    }
+}
+
 #[tauri::command(rename_all = "snake_case")]
 async fn get_top_search(app: tauri::AppHandle, query: String) {
     let args = vec![format!("ytsearch5:{}", query), "--dump-json".to_string()];
@@ -228,7 +254,7 @@ async fn get_top_search(app: tauri::AppHandle, query: String) {
             let data = String::from_utf8_lossy(&line_bytes);
 
             if let Ok(mut video_details) = serde_json::from_str::<Video>(&data) {
-                video_details.url = format!("https://www.youtube.com/watch?v={}", video_details.url);
+                parse_video_details(&mut video_details);
                 search_results.push(video_details);
                 app.emit("search-update", search_results.clone())
                     .expect("failed to send search update");

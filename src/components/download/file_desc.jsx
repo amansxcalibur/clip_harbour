@@ -31,12 +31,13 @@ export default function FileDesc() {
                   <button className={`${collapse ? "text-black" : "bg-black text-[#ffffff]"} min-h-[7vh] border border-black border-solid flex items-center text-[2vw] pl-[2vw] sticky top-0`}>
                      <span className="size-10"><Plus /></span> Key Data
                   </button>
-                  <div className={`grid grid-cols-2 px-[2vw] py-[1vw] gap-[0.3vw] ${collapse ? "hidden" : ""}`}>
+                  <div className={`min-h-[18vh] max-h-[22vh] overflow-y-auto grid grid-cols-2 px-[2vw] py-[1vw] gap-[0.3vw] ${collapse ? "hidden" : ""}`}>
                      {Object.keys(selectedVideo.formats[0] || {}).map((key, index) => (
-                        <div key={index} className="flex text-[1.3vw]">
-                           <p className="-rotate-90 size-7 mr-[0.5vw]"><Arrow /></p>
-                           {key}: <span className="font-medium ml-[0.3vw]">{selectedVideo.formats[curr][key]}</span>
-                        </div>
+                        selectedVideo.formats[curr][key] ?
+                           <div key={index} className="flex text-[1.3vw]">
+                              <p className="-rotate-90 size-7 mr-[0.5vw]"><Arrow /></p>
+                              {key}: <span className="font-medium ml-[0.3vw]">{key == "bitrate" ? selectedVideo.formats[curr][key].toFixed(2) + " Kbps" : selectedVideo.formats[curr][key]}</span>
+                           </div> : null
                      ))}
                   </div>
                </div>
