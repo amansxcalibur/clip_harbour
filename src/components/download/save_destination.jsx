@@ -25,9 +25,9 @@ export default function FolderPicker() {
 
   return (
     <div>
-      <p>Download Path: {downloadPath || "No folder selected"}</p>
+      <p className="pl-2 pb-2 text-gray">Current Path: {downloadPath || "No folder selected"}</p>
       <button type="button" onClick={handleSelectFolder} className="p-2 bg-black hover:bg-[#dfdfdf] hover:text-black text-white white rounded-full px-[1vw]">
-        Choose Folder
+        Choose Path
       </button>
     </div>
   );
