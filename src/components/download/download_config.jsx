@@ -42,7 +42,7 @@ export default function DownloadConfig({ selectedVideo, curr }) {
 
    const handleSubmit = (e) => {
       e.preventDefault();
-      formData.output_dir = downloadPath || "/tmp/";
+      formData.output_dir = downloadPath || "";
       console.log(downloadPath)
       formData.format = format.id;
       formData.url = selectedVideo.url;
