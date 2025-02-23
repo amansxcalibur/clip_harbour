@@ -88,12 +88,12 @@ export default function DownloadConfig({ selectedVideo, curr }) {
                      className="text-[2vw]"
                      id="output-ext-select"
                   >
-                     <option value="mp4">MP4</option>
-                     <option value="mkv">MKV</option>
-                     <option value="mov">MOV</option>
-                     <option value="webm">WEBM</option>
-                     <option value="mp3">MP3</option>
-                     <option value="m4a">M4A</option>
+                     <option value="mp4">mp4</option>
+                     <option value="mkv">mkv</option>
+                     <option value="mov">mov</option>
+                     <option value="webm">webm</option>
+                     <option value="mp3">mp3</option>
+                     <option value="m4a">m4a</option>
                   </select>
                </div>
             </div>

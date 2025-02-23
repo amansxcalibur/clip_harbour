@@ -9,7 +9,6 @@ export default function SearchBar() {
     const { setSelectedVideo } = useVideo();
 
     async function Search() {
-        let result = await invoke("start_download", { config: { url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", output_dir: "/tmp/" , title: "Hello" }});
         if (searchValue.includes("http")) {
             setSelectedVideo(null)
             invoke("get_url_details", { url: searchValue }).then((videoDetails) => setSelectedVideo(videoDetails));
@@ -21,7 +20,7 @@ export default function SearchBar() {
 
     return (
         <div className="">
-            <input id="search" onKeyDown={(e) => {if (e.key == "Enter") Search()}} onChange={(e) => setSearchValue(e.target.value)} type="text" className="text-black text-base font-bold min-h-[3.5vw] min-w-[25vw] font-light text-[1vw] border border-[#bebebe] border-solid px-[1vw]" placeholder="Search or Enter URL" />
+            <input id="search" onKeyDown={(e) => { if (e.key == "Enter") Search() }} onChange={(e) => setSearchValue(e.target.value)} type="text" className="text-black text-base font-bold min-h-[3.5vw] min-w-[25vw] font-light text-[1vw] border border-[#bebebe] border-solid px-[1vw]" placeholder="Search or Enter URL" />
             <button className="min-w-10" onClick={Search}>Search</button>
         </div>
     )

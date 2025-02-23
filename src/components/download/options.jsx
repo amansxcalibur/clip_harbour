@@ -16,7 +16,7 @@ export default function Options({ curr, setCurr, collapse, selectedVideo }) {
           <p
             onClick={() => { setCurr(index) }}
             key={key}
-            className={`${index == curr ? "bg-black text-white" : "bg-transparent"} group flex relative gap-x-[.5vw] border-b-[1px] border-solid border-black text-[1.4vw] max-md:text-[5vw] text-black hover:text-white z-10 p-[.7vw] max-md:p-[2.1vw] transition-all ease-in-out duration-500`}
+            className={`${index == curr ? "bg-black text-white" : "bg-transparent"} group flex relative gap-x-[.5vw] border-b-[1px] border-solid border-black text-[1.5vw] max-md:text-[5vw] text-black hover:text-white z-10 p-[.7vw] max-md:p-[2.1vw] transition-all ease-in-out duration-500`}
           >
             <p className="w-[5vw] max-md:hover:ml-[3vw]">{formats[index].ext}</p>
             <p className="flex-1 flex justify-center max-md:hover:ml-[3vw]">{formats[index].resolution}</p>
