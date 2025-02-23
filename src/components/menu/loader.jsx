@@ -11,7 +11,7 @@ export default function Loader({ id, download }) {
     return (
         <li key={id} className="flex flex-col">
             <div className="flex-1">{download.title || "Downloaded"}</div>
-            <div className="flex items-center -mt-1">
+            <div className="flex items-center -mt-1 mr-3">
                 <div className="flex-1">{download.status || "Error"}</div>
                 {download.status=="downloading"?
                 <button onClick={async () => { invoke("pause_download", { id: parseInt(id) }) }} disabled={download.status=='finished'} className={`size-5 ${download.status=='finished'?"opacity-50":""}`}><Pause/></button>

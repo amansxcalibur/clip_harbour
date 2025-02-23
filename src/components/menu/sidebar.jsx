@@ -3,7 +3,7 @@ import { useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import Loader from "./loader";
 import Queue from "../svg/queue";
-import History from "../../../public/icons/history.png"
+import History from "/icons/history.png"
 import Folder from "../svg/folder";
 import CircularProgressBar from "../ui/circle_progress";
 
@@ -34,7 +34,8 @@ export default function SideBar({ open, setOpen }) {
                         <>
                         {download.status=='finished'?
                            <div key={id} className="w-5 h-5 m-2 bg-black"></div>:
-                           <CircularProgressBar percent={download.percentage}/>
+                           // <CircularProgressBar percent={parseInt(download.percentage, 10) || 0}/>
+                           <CircularProgressBar download={download}/>
                         }</>
                      }</>
                   ))}
