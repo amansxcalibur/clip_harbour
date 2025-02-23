@@ -17,12 +17,14 @@ export default function DownloadConfig({ selectedVideo, curr }) {
       subtitles: false,
       embed_metadata: false,
       embed_thumbnail: false,
+      duration_raw: 0,
    });
 
    useEffect(() => {
       setFormData((prev) => ({
          ...prev,
          output_ext: selectedVideo.formats[curr]?.ext || null,
+         duration_raw: selectedVideo.duration_raw
       }));
    }, [curr]);
 
@@ -35,6 +37,7 @@ export default function DownloadConfig({ selectedVideo, curr }) {
          ...prev,
          [name]: type === "checkbox" ? checked : value,
       }));
+      console.log(formData.duration_raw)
    };
 
    const handleSubmit = (e) => {

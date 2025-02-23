@@ -49,6 +49,7 @@ struct DownloadConfig {
     embed_subtitles: Option<bool>,
     embed_metada: Option<bool>,
     embed_thumbnail: Option<bool>,
+    duration_raw: Option<f64>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -81,7 +82,7 @@ struct Video {
     url: String,
     uploader: String,
     thumbnail: String,
-    #[serde(rename(deserialize = "duration"), skip_serializing)]
+    #[serde(rename(deserialize = "duration"))]
     duration_raw: i64,
     #[serde(rename(deserialize = "duration_string"))]
     duration: String,
@@ -133,7 +134,7 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
             download_registry.insert(
                 process_id,
                 Download {
-                    title: config.title,
+                    title: config.title.clone(),
                     status: "starting..".to_string(),
                     ..Default::default()
                 },
@@ -149,7 +150,7 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
         while let Some(event) = rx.recv().await {
             if let CommandEvent::Stdout(data_bytes) = event {
                 let data = String::from_utf8_lossy(&data_bytes);
-                if let Ok(download) = serde_json::from_str::<Download>(&data) {
+                if let Ok(mut download) = serde_json::from_str::<Download>(&data) {
                     let snapshot = {
                         let mut download_registry = state.download_registry.lock().await;
                         // Break out of loop if download has been cancelled or process doesn't
@@ -158,6 +159,7 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
                             if entry.status == "cancelled" {
                                 break;
                             }
+                            download.title = config.title.clone();
                             download_registry.insert(process_id, download);
                         } else {
                             break;
@@ -175,16 +177,24 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
         if let Some(output_ext) = config.output_ext {
             let download_registry = state.download_registry.lock().await;
             if let Some(download) = download_registry.get(&process_id) {
-                if let Some(filename) = download.filename.as_ref() {
+                if let (Some(filename), Some(duration)) = (download.filename.as_ref(), config.duration_raw.as_ref()) {
                     let input_path = format!("{}", filename);
                     let output_path = format!(
                         "{}.{}",
                         filename.rsplit_once('.').map(|(name, _)| name).unwrap(),
                         output_ext
                     );
-
+                    let duration_clone = duration.clone();
                     tauri::async_runtime::spawn(async move {
-                        convert_video(app_clone, input_path, output_path).await;
+                        convert_video(
+                            app_clone,
+                            input_path,
+                            output_path,
+                            process_id,
+                            duration_clone,
+                            config.title,
+                        )
+                        .await;
                     });
                 }
             }
@@ -192,21 +202,91 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
     });
 }
 
+fn parse_time_to_seconds(time_str: &str) -> f64 {
+    let parts: Vec<&str> = time_str.split(':').collect();
+    if parts.len() != 3 {
+        return 0.0;
+    }
+    let hours: f64 = parts[0].parse().unwrap_or(0.0);
+    let minutes: f64 = parts[1].parse().unwrap_or(0.0);
+    let seconds: f64 = parts[2].parse().unwrap_or(0.0);
+    hours * 3600.0 + minutes * 60.0 + seconds
+}
+
+// TODO: This function is utter garbage and needs to be rewritten
 #[tauri::command]
-async fn convert_video(app: tauri::AppHandle, input_path: String, output_ext: String) {
+async fn convert_video(
+    app: tauri::AppHandle,
+    input_path: String,
+    output_ext: String,
+    process_id: usize,
+    duration: f64,
+    title: String,
+) {
+    let state = app.state::<AppState>();
     let args = vec![
         "-i".to_string(),
         input_path.clone(),
         "-y".to_string(),
         output_ext.clone(),
+        "-progress".to_string(),
+        "pipe:1".to_string(),
+        "-v".to_string(),
+        "quiet".to_string(),
     ];
     let sidecar_command = app.shell().sidecar("ffmpeg").unwrap().args(args);
     let (mut rx, mut _child) = sidecar_command.spawn().expect("failed ffmpeg");
 
+    let snapshot = {
+        let mut download_registry = state.download_registry.lock().await;
+        download_registry.get_mut(&process_id).unwrap().status = "Converting..".to_string();
+        download_registry.clone()
+    };
+
+    app.emit("status", snapshot).expect("failed to emit converting event");
+
     while let Some(event) = rx.recv().await {
-        if let CommandEvent::Stderr(line_bytes) = event {
+        if let CommandEvent::Stdout(line_bytes) = event {
             let log = String::from_utf8_lossy(&line_bytes);
-            println!("FFmpeg Log: {}", log);
+            if log.contains("out_time=") {
+                let line = log.trim();
+                if line.starts_with("out_time=") {
+                    if let Some(time_str) = line.strip_prefix("out_time=") {
+                        let current_time = parse_time_to_seconds(time_str.trim());
+                        let progress = (current_time / duration) * 100.0;
+
+                        let snapshot = {
+                            let mut download_registry = state.download_registry.lock().await;
+                            // Break out of loop if download has been cancelled or process doesn't
+                            // exist
+                            if let Some(entry) = download_registry.get_mut(&process_id) {
+                                entry.percentage = Some(format!("{}%", (progress as i64).to_string()));
+                                entry.title = title.clone();
+                            } else {
+                                break;
+                            }
+                            download_registry.clone()
+                        };
+                        app.emit("status", snapshot).expect("failed to emit progress event");
+                    }
+                }
+            }
+
+            if log.contains("progress=end") {
+                let snapshot = {
+                    let mut download_registry = state.download_registry.lock().await;
+                    // Break out of loop if download has been cancelled or process doesn't
+                    // exist
+                    if let Some(entry) = download_registry.get_mut(&process_id) {
+                        entry.title = title.clone();
+                        entry.status = "Finished!".to_string();
+                    } else {
+                        break;
+                    }
+                    download_registry.clone()
+                };
+                app.emit("status", snapshot).expect("failed to emit progress event");
+            }
         }
     }
 

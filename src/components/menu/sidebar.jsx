@@ -8,6 +8,7 @@ export default function SideBar({ open, setOpen }) {
 
    listen("status", (event) => {
       setDownloads(event.payload);
+      console.log(event.payload);
    });
 
    return (
