@@ -8,7 +8,24 @@ export default function SearchResults({ open, setOpen }) {
    const handleHover = (index) => {
       setCurr(index);
    };
-   if (!searchResults) {
+   if (searchResults && searchResults[0]?.title === "Loading...") {
+      return (
+         <div className="flex flex-col gap-4 p-6 w-full">
+            {[...Array(5)].map((_, index) => (
+               <div key={index} className="animate-pulse flex items-center space-x-6 border-b border-gray-200 p-4 w-full">
+                  <div className="h-[4vw] w-[15vw] bg-gray-200 rounded-lg"></div>
+                  <div className="flex-1 space-y-4">
+                     <div className="h-[1.2vw] bg-gray-200 rounded w-3/4"></div>
+                     <div className="h-[1vw] bg-gray-200 rounded w-1/2"></div>
+                  </div>
+               </div>
+            ))}
+         </div>
+      );
+   }
+
+   
+   else if (!searchResults) {
       return (
          <div>
             No results yet! Search something.
