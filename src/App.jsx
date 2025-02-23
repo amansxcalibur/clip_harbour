@@ -1,12 +1,12 @@
 import "./App.css";
-import SearchBar from "./components/search/search_bar";
-import SearchResults from "./components/search/results";
+
 import FileDesc from "./components/download/file_desc";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import SideBar from "./components/menu/sidebar";
 import { useState } from "react";
 import { VideoProvider } from "./providers/video_context";
 import { DownloadPathProvider } from "./providers/download_path_context";
+import Home from "./home";
 
 function App() {
    const [open, setOpen] = useState(false);
@@ -17,19 +17,7 @@ function App() {
             <BrowserRouter>
                <Routes>
                   <Route path='/' element={
-                     <div className="flex flex-1">
-                        <SideBar open={open} setOpen={setOpen} />
-                        <div className="flex-1 flex flex-col">
-                           <div className="flex justify-center">
-                              <SearchBar />
-                           </div>
-
-                           <div className="h-[1px] bg-black w-full"></div>
-                           <div className="flex-1 flex">
-                              <SearchResults open={open} setOpen={setOpen} />
-                           </div>
-                        </div>
-                     </div>
+                      <Home open={open} setOpen={setOpen}/>
                   } />
                   <Route path='/val' element={
                      <div className="flex flex-1">

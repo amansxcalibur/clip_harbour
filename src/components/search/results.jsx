@@ -27,7 +27,7 @@ export default function SearchResults({ open, setOpen }) {
    
    else if (!searchResults) {
       return (
-         <div>
+         <div className="ml-[2vw] text-[1.5vw]">
             No results yet! Search something.
          </div>
       )
