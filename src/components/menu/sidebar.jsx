@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import FolderPicker from "../download/save_destination";
+import DownloadConfig from "../download/download_config";
 
 export default function SideBar({open, setOpen}) {
    return (
@@ -27,6 +28,9 @@ export default function SideBar({open, setOpen}) {
                   </li>
                   <li>
                      <a href="/">Go /</a>
+                  </li>
+                  <li>
+                  <DownloadConfig ext={"mp4"}/>
                   </li>
                </ul>
                <ul className="absolute bottom-0 mb-4">

@@ -32,7 +32,7 @@ struct Download {
     file_size: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 struct DownloadConfig {
     url: String,
     output_dir: Option<String>,
@@ -95,8 +95,11 @@ fn parse_config(config: DownloadConfig) -> Vec<String> {
 
 #[tauri::command(rename_all = "snake_case")]
 fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
+    let config_clone = config.clone();
     let sidecar_command = app.shell().sidecar("yt-dlp").unwrap().args(parse_config(config));
     let (mut rx, mut _child) = sidecar_command.spawn().expect("Failed to spawn sidecar");
+
+    let output_dir = config_clone.output_dir.unwrap_or_else(|| ".".to_string()); 
 
     let app_clone = app.clone();
     tauri::async_runtime::spawn(async move {
@@ -124,6 +127,8 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
             .emit("status", snapshot)
             .expect("failed to emit starting event");
 
+        let mut downloaded_file = None;
+
         // read events such as stdout
         while let Some(event) = rx.recv().await {
             if let CommandEvent::Stdout(line_bytes) = event {
@@ -137,12 +142,48 @@ fn start_download(app: tauri::AppHandle, config: DownloadConfig) {
 
                     app_clone.emit("status", snapshot).expect("failed to emit update event");
                 }
+                if let Some(filename) = data.strip_prefix("Destination: ") {
+                    downloaded_file = Some(filename.trim().to_string());
+                }
             }
+        }
+
+        if let Some(input_path) = downloaded_file {
+            let output_path = format!("{}/converted.mp4", output_dir);
+            println!("Calling convert_ext for: {} -> {}", input_path, output_path);
+
+            // Call convert_ext asynchronously
+            tauri::async_runtime::spawn(async move {
+                convert_ext(app_clone, input_path, output_path).await;
+            });
         }
     });
 }
 
 #[tauri::command]
+async fn convert_ext(app: tauri::AppHandle, input_path: String, output_path: String) {
+    print!("Hello rust des");
+    println!("Converting: {} -> {}", input_path, output_path);
+    let args = vec![
+        "-i".to_string(), input_path.clone(),
+        "-y".to_string(),
+        output_path.clone()
+    ];
+    let sidecar_command = app.shell().sidecar("ffmpeg").unwrap().args(args);
+    let (mut rx, mut _child) = sidecar_command.spawn().expect("failed ffmpeg");
+    println!("conversion: {} -> {}", input_path, output_path);
+
+    while let Some(event) = rx.recv().await {
+        if let CommandEvent::Stderr(line_bytes) = event {
+            let log = String::from_utf8_lossy(&line_bytes);
+            println!("FFmpeg Log: {}", log);
+        }
+    }
+
+    println!("ffmpeg conversion completed: {}", output_path);
+}
+
+#[tauri::command(rename_all = "snake_case")]
 async fn stop_download(app: tauri::AppHandle, id: usize) {
     let state = app.state::<AppState>();
     let mut registry = state.process_registry.lock().await;
@@ -230,7 +271,8 @@ pub fn run() {
             get_thumbnail_url,
             get_favicon,
             get_formats,
-            get_top_search
+            get_top_search,
+            convert_ext
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

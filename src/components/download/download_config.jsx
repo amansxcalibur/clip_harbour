@@ -2,6 +2,7 @@ import { useState } from "react";
 import FolderPicker from "./save_destination";
 import CheckboxIcon from "../ui/checkbox";
 import Download from "../svg/download";
+import { invoke } from "@tauri-apps/api/core";
 
 export default function DownloadConfig({ ext }) {
 const [formData, setFormData] = useState({
@@ -22,9 +23,21 @@ const handleChange = (e) => {
    }));
 };
 
-const handleSubmit = (e) => {
+const handleSubmit = async (e) => {
    e.preventDefault();
    console.log("download now", formData)
+   try {
+      const inputPath = "/home/aman/tauri/sample.webm";
+      const outputPath = "/home/aman/tauri/output.mp4";
+
+      await invoke("convert_ext", {
+         inputPath: inputPath,
+         outputPath: outputPath
+      });
+      console.log("here hehehe");
+   } catch (error) {
+      console.error("Failed to fetch formats:", error);
+   }
 };
 
 return (
